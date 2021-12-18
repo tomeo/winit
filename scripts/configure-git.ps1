@@ -13,4 +13,4 @@ git config --global alias.lola "log --graph --decorate --pretty=oneline --abbrev
 git config --global fetch.prune true
 git config --global init.defaultBranch master
 git config --global core.excludesfile ~/.gitignore
-echo ".tommy" >> ~/.gitignore
+Add-Content -Path $env:USERPROFILE/.gitignore -Value '.hidden'
