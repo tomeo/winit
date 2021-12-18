@@ -1,0 +1,1 @@
+copy apps/windows-terminal/settings.json $env:LOCALAPPDATA/Packages/Microsoft.WindowsTerminal_8wekyb3d8bbwe/LocalState/settings.json

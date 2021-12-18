@@ -1,0 +1,1 @@
+Set-WinUserLanguageList -LanguageList en-SE, en-US -Force
