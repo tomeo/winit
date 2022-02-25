@@ -6,3 +6,5 @@ scoop install jq
 scoop install latex
 scoop install sumatrapdf
 scoop install gcloud
+scoop install elixir
+scoop install extras/vcredist2013

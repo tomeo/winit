@@ -8,6 +8,7 @@ code --install-extension adamhartford.vscode-base64
 code --install-extension neilding.language-liquid
 code --install-extension svelte.svelte-vscode
 code --install-extension James-Yu.latex-workshop
+code --install-extension JakeBecker.elixir-ls
 
 scoop install nodejs-lts
 node ./configure-vscode-settings.js
