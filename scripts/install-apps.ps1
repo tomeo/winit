@@ -8,3 +8,4 @@ scoop install sumatrapdf
 scoop install gcloud
 scoop install elixir
 scoop install extras/vcredist2013
+scoop install calibre
