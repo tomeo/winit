@@ -16,4 +16,5 @@ git config --global fetch.prune true
 git config --global init.defaultBranch master
 git config --global core.excludesfile ~/.gitignore
 git config --global core.safecrlf false
+git config --global core.autocrlf false
 Add-Content -Path $env:USERPROFILE/.gitignore -Value '.hidden'
