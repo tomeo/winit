@@ -15,6 +15,5 @@ git config --global alias.stats "shortlog -s -n --all"
 git config --global fetch.prune true
 git config --global init.defaultBranch master
 git config --global core.excludesfile ~/.gitignore
-git config --global core.safecrlf false
-git config --global core.autocrlf false
+git config --global core.autocrlf true
 Add-Content -Path $env:USERPROFILE/.gitignore -Value '.hidden'
