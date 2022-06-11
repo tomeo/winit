@@ -9,6 +9,7 @@ code --install-extension neilding.language-liquid
 code --install-extension svelte.svelte-vscode
 code --install-extension James-Yu.latex-workshop
 code --install-extension JakeBecker.elixir-ls
+code --install-extension phoenixframework.phoenix
 
 scoop install nodejs-lts
 node ./configure-vscode-settings.js
