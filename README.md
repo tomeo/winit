@@ -20,4 +20,5 @@ Open PowerShell as administrator and run scripts from ./scripts:
 ```
 
 ## Documentation
+
 * [Custom prompt setup](https://docs.microsoft.com/en-us/windows/terminal/tutorials/custom-prompt-setup)
