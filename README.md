@@ -12,6 +12,7 @@ Set-ExecutionPolicy RemoteSigned -scope CurrentUser
 ## Run initialise
 
 Open PowerShell as administrator and run scripts from ./scripts:
+
 ```Powershell
 ./scripts/remap-caps-lock-to-ctrl.ps1
 ./scripts/set-keyboard-layouts.ps1
