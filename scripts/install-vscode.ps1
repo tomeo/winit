@@ -12,6 +12,8 @@ code --install-extension svelte.svelte-vscode
 code --install-extension James-Yu.latex-workshop
 code --install-extension JakeBecker.elixir-ls
 code --install-extension phoenixframework.phoenix
+code --install-extension ms-azuretools.vscode-docker
+code --install-extension redhat.vscode-xml
 
 scoop install nodejs-lts
 node ./configure-vscode-settings.js
