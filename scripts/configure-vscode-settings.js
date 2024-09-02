@@ -1,6 +1,6 @@
 const fs = require('fs')
 
-const path = `${process.env.APPDATA}/Code/User/settings.json`;
+const path = `${process.env.USERPROFILE}/scoop/apps/vscode/current/data/user-data/User/settings.json`;
 
 fs.readFile(path, 'utf8' , (err, data) => {
   let settings = JSON.parse(data || '{}');
