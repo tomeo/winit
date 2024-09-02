@@ -44,7 +44,7 @@
                 "fontSize" : 8,
                 "historySize" : 9001,
                 "startingDirectory": "%USERPROFILE%\\code",
-                "fontFace": "FiraCode NF",
+                "fontFace": "FiraCode Nerd Font",
                 "useAcrylic": false,
                 "acrylicOpacity" : 0.75,
                 "padding": "0, 0, 0, 0",
