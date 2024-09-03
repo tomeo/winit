@@ -14,6 +14,7 @@ code --install-extension JakeBecker.elixir-ls
 code --install-extension phoenixframework.phoenix
 code --install-extension ms-azuretools.vscode-docker
 code --install-extension redhat.vscode-xml
+code --install-extension bierner.markdown-mermaid
 
 scoop install nodejs-lts
 node ./configure-vscode-settings.js
