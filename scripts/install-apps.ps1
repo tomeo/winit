@@ -11,3 +11,4 @@ scoop install extras/vcredist2013
 scoop install calibre
 scoop install windows-terminal
 scoop install obsidian
+powershell -Command "iwr https://fly.io/install.ps1 -useb | iex"
