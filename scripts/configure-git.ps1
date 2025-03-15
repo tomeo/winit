@@ -43,7 +43,7 @@ git config --global color.diff-highlight.newNormal    "green bold"
 git config --global color.diff-highlight.newHighlight "green bold 22"
 
 git config --global color.diff.meta       "yellow bold"
-git config --global color.diff.frag       "magenta bold"
+git config --global color.diff.frag       "yellow bold"
 git config --global color.diff.func       "blue bold"
 git config --global color.diff.commit     "cyan bold"
 git config --global color.diff.old        "red bold"
