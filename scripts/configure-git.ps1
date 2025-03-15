@@ -25,7 +25,7 @@ git config --global alias.lola "log --graph --decorate --pretty=oneline --abbrev
 git config --global alias.cs "! TMPFILE=`$(mktemp /tmp/git-commit-status-message.XXX); git status --porcelain | grep '^[MARCDT]' | sort | sed -re 's/^([[:upper:]])[[:upper:]]?[[:space:]]+/\1:\n/' | awk '!x[`$0]++' | sed -re 's/^([[:upper:]]:)`$/\n\1/' | sed -re 's/^M:`$/Modified: /' | sed -re 's/^A:`$/Added: /' | sed -re 's/^R:`$/Renamed: /' | sed -re 's/^C:`$/Copied: /' | sed -re 's/^D:`$/Deleted: /' | sed -re 's/^T:`$/File Type Changed: /' | xargs > `$TMPFILE; git commit -F `$TMPFILE; rm -f `$TMPFILE"
 git config --global alias.stats "shortlog -s -n --all"
 git config --global fetch.prune true
-git config --global init.defaultBranch master
+git config --global init.defaultBranch main
 git config --global core.excludesfile ~/.gitignore
 git config --global core.autocrlf true
 git config --global core.safecrlf false
