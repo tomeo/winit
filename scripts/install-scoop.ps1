@@ -1,3 +1,6 @@
-iwr -useb get.scoop.sh | iex
+if (-not (Get-Command scoop -ErrorAction SilentlyContinue)) {
+    iwr -useb get.scoop.sh | iex
+}
 scoop install git
 scoop bucket add extras
+scoop bucket add versions
