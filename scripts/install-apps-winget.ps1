@@ -1,23 +1,38 @@
-$flags = @('-e', '--accept-source-agreements', '--accept-package-agreements')
+# Installs apps via winget, but skips anything that is already installed,
+# whether via winget, a manual installer or scoop. Safe to re-run.
+function Install-App {
+    param([string]$Id, [string]$ScoopName)
+
+    if ($ScoopName -and (Test-Path "$env:USERPROFILE\scoop\apps\$ScoopName")) {
+        Write-Host "$Id is already installed via scoop, skipping"
+        return
+    }
+    $null = winget list -e --id $Id --accept-source-agreements
+    if ($LASTEXITCODE -eq 0) {
+        Write-Host "$Id is already installed, skipping"
+        return
+    }
+    winget install -e --id $Id --accept-source-agreements --accept-package-agreements
+}
 
 # GUI apps
-winget install @flags --id Google.Chrome
-winget install @flags --id SlackTechnologies.Slack
-winget install @flags --id Spotify.Spotify
-winget install @flags --id VideoLAN.VLC
-winget install @flags --id calibre.calibre
-winget install @flags --id Obsidian.Obsidian
-winget install @flags --id SumatraPDF.SumatraPDF
-winget install @flags --id PDFgear.PDFgear
-winget install @flags --id DBeaver.DBeaver.Community
-winget install @flags --id mRemoteNG.mRemoteNG
-winget install @flags --id WinSCP.WinSCP
-winget install @flags --id JAMSoftware.TreeSize.Free
-winget install @flags --id Anthropic.Claude
-winget install @flags --id Microsoft.AzureVPNClient
+Install-App Google.Chrome googlechrome
+Install-App SlackTechnologies.Slack slack
+Install-App Spotify.Spotify spotify
+Install-App VideoLAN.VLC vlc
+Install-App calibre.calibre calibre
+Install-App Obsidian.Obsidian obsidian
+Install-App SumatraPDF.SumatraPDF sumatrapdf
+Install-App PDFgear.PDFgear pdfgear
+Install-App DBeaver.DBeaver.Community dbeaver
+Install-App mRemoteNG.mRemoteNG mremoteng
+Install-App WinSCP.WinSCP winscp
+Install-App JAMSoftware.TreeSize.Free treesize-free
+Install-App Anthropic.Claude
+Install-App Microsoft.AzureVPNClient
 
 # Dev tools
-winget install @flags --id GitHub.cli
-winget install @flags --id Microsoft.AzureCLI
-winget install @flags --id Microsoft.DotNet.SDK.8
-winget install @flags --id Microsoft.DotNet.SDK.10
+Install-App GitHub.cli
+Install-App Microsoft.AzureCLI
+Install-App Microsoft.DotNet.SDK.8
+Install-App Microsoft.DotNet.SDK.10

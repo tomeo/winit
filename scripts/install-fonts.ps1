@@ -1,4 +1,7 @@
+# Per-user font install, no elevation needed.
 scoop bucket add nerd-fonts
-& $env:USERPROFILE\scoop\buckets\nerd-fonts\bin\generate-manifests.ps1
-scoop install sudo
-sudo scoop install -g firacode-nf
+if (Test-Path "$env:ProgramData\scoop\apps\firacode-nf") {
+    Write-Host "firacode-nf is already installed globally, skipping"
+} else {
+    scoop install firacode-nf
+}

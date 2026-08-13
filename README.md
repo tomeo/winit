@@ -10,7 +10,13 @@ Open a regular (non-admin) PowerShell and run:
 iwr -useb https://raw.githubusercontent.com/tomeo/winit/master/bootstrap.ps1 | iex
 ```
 
-This installs scoop and git, clones the repo to ~/code/winit and runs scripts/init.ps1, which runs everything below in order. Expect UAC prompts for the elevated steps (global fonts, WSL, caps lock remap) and interactive prompts from configure-git.ps1. Reboot when it finishes.
+This installs scoop and git, clones the repo to ~/code/winit and runs scripts/init.ps1. The flow:
+
+1. Any missing input (git e-mail and name) is asked for upfront.
+2. Everything then runs unattended, with one UAC prompt at the end for the elevated steps (WSL and the caps lock remap).
+3. Reboot when it finishes.
+
+The whole thing is safe to re-run: already installed apps are skipped (including apps winget can't see because they were installed via scoop), config steps are idempotent, and the current Windows Terminal settings are backed up to settings.json.bak before being overwritten.
 
 ## Run scripts individually
 
@@ -34,6 +40,5 @@ Notes:
 
 * Don't use an elevated shell for the scoop scripts, the scoop installer refuses to run as admin.
 * install-wsl.ps1 and remap-caps-lock-to-ctrl.ps1 need an elevated shell (init.ps1 runs them via sudo).
-* install-fonts.ps1 must run before configure-windows-terminal.ps1 (the terminal profile uses FiraCode Nerd Font).
 * install-nodejs.ps1 must run before install-vscode.ps1 (the settings script runs on node).
 * remap-caps-lock-to-ctrl.ps1 requires a reboot to take effect.

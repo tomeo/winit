@@ -62,4 +62,4 @@ code --install-extension redhat.vscode-xml
 code --install-extension svelte.svelte-vscode
 
 scoop install nodejs-lts
-node ./configure-vscode-settings.js
+node "$PSScriptRoot\configure-vscode-settings.js"
