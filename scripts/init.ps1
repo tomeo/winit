@@ -28,7 +28,10 @@ Invoke-Step 'Fonts'                     { ./install-fonts.ps1 }
 Invoke-Step 'Node.js and npm packages'  { ./install-nodejs.ps1 }
 Invoke-Step 'VS Code'                   { ./install-vscode.ps1 }
 Invoke-Step 'Git config'                { ./configure-git.ps1 -Email $GitEmail -FullName $GitFullName }
+Invoke-Step 'GitHub SSH'                { ./configure-github-ssh.ps1 -Email $GitEmail }
+Invoke-Step 'Dotfiles'                  { ./configure-dotfiles.ps1 }
 Invoke-Step 'Windows Terminal config'   { ./configure-windows-terminal.ps1 }
+Invoke-Step 'Explorer settings'         { ./configure-explorer.ps1 }
 Invoke-Step 'Keyboard layouts'          { ./set-keyboard-layouts.ps1 }
 
 # The steps that need elevation run in one go: a single UAC prompt.
