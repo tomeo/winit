@@ -1,7 +1,7 @@
 # Installs apps via winget, but skips anything that is already installed,
 # whether via winget, a manual installer or scoop. Safe to re-run.
 function Install-App {
-    param([string]$Id, [string]$ScoopName)
+    param([string]$Id, [string]$ScoopName, [string]$Source)
 
     if ($ScoopName -and (Test-Path "$env:USERPROFILE\scoop\apps\$ScoopName")) {
         Write-Host "$Id is already installed via scoop, skipping"
@@ -12,7 +12,9 @@ function Install-App {
         Write-Host "$Id is already installed, skipping"
         return
     }
-    winget install -e --id $Id --accept-source-agreements --accept-package-agreements
+    $Flags = @('-e', '--id', $Id, '--accept-source-agreements', '--accept-package-agreements')
+    if ($Source) { $Flags += '--source', $Source }
+    winget install @Flags
 }
 
 # GUI apps
@@ -30,6 +32,8 @@ Install-App WinSCP.WinSCP winscp
 Install-App JAMSoftware.TreeSize.Free treesize-free
 Install-App Anthropic.Claude
 Install-App Microsoft.AzureVPNClient
+# WhatsApp is Store-only, hence the msstore source and product id.
+Install-App 9NKSQGP7F2NH -Source msstore
 
 # Dev tools
 Install-App GitHub.cli

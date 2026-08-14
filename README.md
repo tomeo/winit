@@ -18,6 +18,16 @@ This installs scoop and git, clones the repo to ~/code/winit and runs scripts/in
 
 The whole thing is safe to re-run: already installed apps are skipped (including apps winget can't see because they were installed via scoop), config steps are idempotent, and the current Windows Terminal settings are backed up to settings.json.bak before being overwritten.
 
+## Re-run
+
+From an existing clone, the same script pulls the latest version and runs the whole setup again:
+
+```Powershell
+./bootstrap.ps1
+```
+
+Everything skips what is already in place, so a re-run only fixes what has drifted.
+
 ## Run scripts individually
 
 The scripts can also be run one by one from a regular (non-admin) PowerShell, in this order:

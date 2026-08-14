@@ -32,7 +32,7 @@ function Show-Drift {
 
 # Scoop installs of apps the winget script covers count as scripted, but only
 # when actually installed: missing ones are the winget section's job to report.
-$WingetLines = Select-String -Path "$PSScriptRoot\install-apps-winget.ps1" -Pattern '^Install-App (\S+)(?: (\S+))?$'
+$WingetLines = Select-String -Path "$PSScriptRoot\install-apps-winget.ps1" -Pattern '^Install-App (\S+)(?: (\S+))?(?: -Source \S+)?$'
 $WingetScoopNames = $WingetLines | ForEach-Object { $_.Matches[0].Groups[2].Value } |
     Where-Object { $_ -and (Test-Path "$env:USERPROFILE\scoop\apps\$_") }
 
