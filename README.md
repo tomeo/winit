@@ -35,6 +35,7 @@ The scripts can also be run one by one from a regular (non-admin) PowerShell, in
 ./scripts/configure-windows-terminal.ps1
 ./scripts/configure-explorer.ps1
 ./scripts/set-keyboard-layouts.ps1
+./scripts/set-default-browser.ps1
 ./scripts/install-wsl.ps1
 ./scripts/remap-caps-lock-to-ctrl.ps1
 ```
