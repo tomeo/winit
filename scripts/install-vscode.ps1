@@ -1,5 +1,5 @@
-# Show installed vscode packages:
-# code --list-extensions --show-versions
+# Installs VS Code, its extensions and settings.
+# Show installed extensions: code --list-extensions --show-versions
 scoop install vscode
 
 # General

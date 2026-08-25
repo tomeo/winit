@@ -1,7 +1,7 @@
-# Windows protects the default-app choice with a hash, so setting Chrome as
-# the default browser can't be scripted reliably. Instead: check if it is
-# already the default, and open the settings page for the one manual click
-# if it is not.
+# Checks that Chrome is the default browser, opening Settings if not.
+# Windows protects the default-app choice with a hash, so the default can't
+# be set by script reliably: the check is scripted and the actual switch is
+# the one manual click in Settings.
 $Current = (Get-ItemProperty 'HKCU:\Software\Microsoft\Windows\Shell\Associations\UrlAssociations\http\UserChoice').ProgId
 if ($Current -like 'ChromeHTML*') {
     Write-Host 'Chrome is already the default browser'

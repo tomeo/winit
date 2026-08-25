@@ -1,5 +1,5 @@
-# Runs all scripts in order. Normally invoked by ../bootstrap.ps1,
-# but can be run on its own from a regular (non-admin) PowerShell.
+# Runs all scripts in order (normally invoked by ../bootstrap.ps1).
+# Can also be run on its own from a regular (non-admin) PowerShell.
 Push-Location $PSScriptRoot
 
 # Gather all input upfront so the rest of the run is unattended.

@@ -1,8 +1,8 @@
-# Sets up SSH auth against GitHub: generates a key if missing, authenticates
-# gh (opens a browser on first run), uploads the key and switches this repo's
-# remote to SSH. Safe to re-run: it starts by asking GitHub whether SSH already
-# works and does nothing if it does, so a machine that authenticates with some
-# other key does not get a second one.
+# Sets up SSH auth against GitHub and switches this repo's remote to SSH.
+# Generates a key if missing, authenticates gh (opens a browser on first
+# run) and uploads the key. Safe to re-run: it starts by asking GitHub
+# whether SSH already works and does nothing if it does, so a machine that
+# authenticates with some other key does not get a second one.
 param([string]$Email)
 
 if (-not $Email) { $Email = git config --global user.email }

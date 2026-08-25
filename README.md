@@ -30,6 +30,8 @@ Everything skips what is already in place, so a re-run only fixes what has drift
 
 ## Run scripts individually
 
+./scripts/menu.ps1 shows a numbered menu of all scripts with their descriptions and runs the one you pick (./scripts/menu.ps1 5 runs number 5 directly).
+
 The scripts can also be run one by one from a regular (non-admin) PowerShell, in this order:
 
 ```Powershell
@@ -61,3 +63,7 @@ Notes:
 
 * ./scripts/check-drift.ps1 compares what is actually installed (scoop, npm, VS Code extensions, winget) with what the scripts install and reports the diff. Run it now and then to keep the scripts honest.
 * ./scripts/update-all.ps1 updates everything the scripts manage: scoop apps, winget apps, global npm packages and VS Code extensions.
+* ./scripts/clean-all.ps1 runs all the clean scripts below in one go.
+* ./scripts/clean-desktop.ps1 removes shortcuts (.lnk/.url) that installers drop on the desktop, including the public desktop (one sudo prompt, only when needed). Real files and folders are left alone.
+* ./scripts/clean-downloads.ps1 moves everything in Downloads older than 30 days (-OlderThanDays to change) to the Recycle Bin, so it can be undone.
+* ./scripts/clean-caches.ps1 reclaims disk space from the scoop, npm and pip caches, old scoop app versions, and %TEMP% files older than a week.

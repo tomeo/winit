@@ -1,3 +1,4 @@
+# Sets git identity, aliases, global gitignore and diff-so-fancy config.
 param(
     [string]$Email,
     [string]$FullName

@@ -1,7 +1,7 @@
-# Installs the repo's Windows Terminal settings. Two installs can exist side
-# by side: the scoop one and the Windows 11 built-in (packaged) one. They read
-# different settings files, so the settings go to every install that is
-# present, each with a backup of whatever it replaces.
+# Installs the repo's Windows Terminal settings, backing up what they replace.
+# Two installs can exist side by side: the scoop one and the Windows 11
+# built-in (packaged) one. They read different settings files, so the
+# settings go to every install that is present.
 $Source = "$PSScriptRoot\..\apps\windows-terminal\settings.json"
 
 $Targets = @()

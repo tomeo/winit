@@ -1,4 +1,4 @@
-# CLI and dev tools. GUI apps are installed via install-apps-winget.ps1.
+# Installs CLI and dev tools via scoop. GUI apps go via install-apps-winget.ps1.
 scoop install 7zip
 scoop install jq
 scoop install pandoc

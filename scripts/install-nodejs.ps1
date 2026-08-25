@@ -1,5 +1,5 @@
-# List installed global packages:
-# npm list -g
+# Installs Node.js LTS and global npm packages.
+# List installed global packages: npm list -g
 scoop install nodejs-lts
 npm i -g @anthropic-ai/claude-code
 npm i -g @pnp/cli-microsoft365

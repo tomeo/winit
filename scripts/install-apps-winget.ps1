@@ -1,5 +1,5 @@
-# Installs apps via winget, but skips anything that is already installed,
-# whether via winget, a manual installer or scoop. Safe to re-run.
+# Installs GUI apps via winget, skipping anything already installed.
+# Skip detection covers winget, manual installers and scoop. Safe to re-run.
 function Install-App {
     param([string]$Id, [string]$ScoopName, [string]$Source)
 
@@ -38,5 +38,6 @@ Install-App 9NKSQGP7F2NH -Source msstore
 # Dev tools
 Install-App GitHub.cli
 Install-App Microsoft.AzureCLI
+Install-App Google.CloudSDK gcloud
 Install-App Microsoft.DotNet.SDK.8
 Install-App Microsoft.DotNet.SDK.10
