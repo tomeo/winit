@@ -12,12 +12,18 @@ New-Item -ItemType Directory -Force $SshDir | Out-Null
 if (Test-Path $Key) {
     Write-Host "SSH key already exists, skipping keygen"
 } else {
-    ssh-keygen -t ed25519 -C $Email -f $Key -N ''
+    # Windows PowerShell, and pwsh in Legacy mode, drop '' when passing it to a
+    # native exe, which leaves -N without its argument. Quote it explicitly there.
+    $NoPassphrase = if ($PSNativeCommandArgumentPassing -eq 'Standard') { '' } else { '""' }
+    ssh-keygen -t ed25519 -C $Email -f $Key -N $NoPassphrase
+    if (-not (Test-Path $Key)) { throw "ssh-keygen did not produce $Key" }
 }
 
 $null = gh auth status
 if ($LASTEXITCODE -ne 0) {
-    gh auth login --hostname github.com --git-protocol ssh --web --skip-ssh-key
+    # Ask for admin:public_key upfront: the default token lacks it, and adding it
+    # afterwards costs a second round of the interactive device flow.
+    gh auth login --hostname github.com --git-protocol ssh --web --skip-ssh-key --scopes admin:public_key
 }
 
 # Upload the public key unless it is already on the account.
@@ -28,7 +34,7 @@ if ($Existing -match [regex]::Escape($KeyMaterial)) {
 } else {
     gh ssh-key add "$Key.pub" --title $env:COMPUTERNAME
     if ($LASTEXITCODE -ne 0) {
-        # The default token lacks the admin:public_key scope, fix and retry.
+        # Safety net for machines already logged in with a narrower token.
         gh auth refresh --hostname github.com --scopes admin:public_key
         gh ssh-key add "$Key.pub" --title $env:COMPUTERNAME
     }
