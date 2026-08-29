@@ -59,6 +59,18 @@ Notes:
 * install-nodejs.ps1 must run before install-vscode.ps1 (the settings script runs on node).
 * remap-caps-lock-to-ctrl.ps1 requires a reboot to take effect.
 
+## Clone your repos
+
+./scripts/clone-repos.ps1 lists every repo on your GitHub account, marks the ones already cloned, and clones the ones you pick into ~/code:
+
+```Powershell
+./scripts/clone-repos.ps1
+```
+
+Pick by number, with commas and ranges (1,4,9-12), or all. -Pick takes the same string without prompting, -Owner lists another account's repos, and -Root clones somewhere other than ~/code. Repos already on disk are skipped, so it is safe to re-run.
+
+It is deliberately not part of init.ps1: which repos you want differs per machine. It clones over SSH, so run configure-github-ssh.ps1 first.
+
 ## Maintenance
 
 * ./scripts/check-drift.ps1 compares what is actually installed (scoop, npm, VS Code extensions, winget) with what the scripts install and reports the diff. Run it now and then to keep the scripts honest.
