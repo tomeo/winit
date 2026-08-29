@@ -34,6 +34,7 @@ Invoke-Step 'Windows Terminal config'   { ./configure-windows-terminal.ps1 }
 Invoke-Step 'Explorer settings'         { ./configure-explorer.ps1 }
 Invoke-Step 'Keyboard layouts'          { ./set-keyboard-layouts.ps1 }
 Invoke-Step 'Default browser'           { ./set-default-browser.ps1 }
+Invoke-Step 'Power and lock'            { ./set-power-and-lock.ps1 }
 
 # The steps that need elevation run in one go: a single UAC prompt.
 Invoke-Step 'WSL and caps lock remap (elevated)' {
