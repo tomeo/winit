@@ -41,3 +41,20 @@ Install-App Microsoft.AzureCLI
 Install-App Google.CloudSDK gcloud
 Install-App Microsoft.DotNet.SDK.8
 Install-App Microsoft.DotNet.SDK.10
+# cloudflared: Cloudflare Access client. `access login` + `access token` reach
+# apps behind Access from a terminal. (Also does Tunnels; we only want the client.)
+Install-App Cloudflare.cloudflared
+
+# The cloudflared MSI does not add itself to PATH, so the binary is unusable by
+# name even after a successful install. User PATH, so no elevation is needed.
+$CloudflaredDir = "${env:ProgramFiles(x86)}\cloudflared"
+if (Test-Path "$CloudflaredDir\cloudflared.exe") {
+    $UserPath = [Environment]::GetEnvironmentVariable("Path", "User")
+    if (($UserPath -split ";") -notcontains $CloudflaredDir) {
+        $NewPath = if ([string]::IsNullOrWhiteSpace($UserPath)) { $CloudflaredDir } else { "$($UserPath.TrimEnd(";"));$CloudflaredDir" }
+        [Environment]::SetEnvironmentVariable("Path", $NewPath, "User")
+        Write-Host "Added $CloudflaredDir to the user PATH"
+    } else {
+        Write-Host "cloudflared is already on the user PATH, skipping"
+    }
+}
