@@ -46,6 +46,7 @@ The scripts can also be run one by one from a regular (non-admin) PowerShell, in
 ./scripts/configure-dotfiles.ps1
 ./scripts/configure-windows-terminal.ps1
 ./scripts/configure-explorer.ps1
+./scripts/configure-taskbar.ps1
 ./scripts/set-keyboard-layouts.ps1
 ./scripts/set-default-browser.ps1
 ./scripts/set-power-and-lock.ps1
@@ -59,6 +60,7 @@ Notes:
 * install-wsl.ps1 and remap-caps-lock-to-ctrl.ps1 need an elevated shell (init.ps1 runs them via sudo).
 * install-nodejs.ps1 must run before install-vscode.ps1 (the settings script runs on node).
 * remap-caps-lock-to-ctrl.ps1 requires a reboot to take effect.
+* configure-taskbar.ps1 hides the search box, task view, widgets, chat and copilot buttons and unpins everything from the taskbar, leaving Start and the running apps. It restarts Explorer to apply, and backs the old taskbar up to %LOCALAPPDATA%\winit\taskbar first, so -Revert puts the pins and buttons back.
 * set-power-and-lock.ps1 stops the machine from sleeping on AC and locks it after 5 minutes idle instead, so background jobs survive an idle lunch. -LockAfterMinutes changes the delay, -Revert undoes it. Battery is left alone.
 
 ## Clone your repos
