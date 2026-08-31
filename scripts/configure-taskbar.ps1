@@ -1,5 +1,5 @@
 # Strips the taskbar down to Start and whatever is running: no search box, no
-# task view, widgets, chat or copilot button, and none of the pinned shortcuts
+# task view, chat or copilot button, and none of the pinned shortcuts
 # (Edge, Microsoft Store, File Explorer). Explorer is restarted at the end
 # because it holds the pin list in memory and writes the old one back at
 # sign-out. The pins and button settings are backed up first, so -Revert puts
@@ -12,11 +12,12 @@ $Taskband = 'HKCU:\Software\Microsoft\Windows\CurrentVersion\Explorer\Taskband'
 $Pinned = "$env:APPDATA\Microsoft\Internet Explorer\Quick Launch\User Pinned\TaskBar"
 $Backup = "$env:LOCALAPPDATA\winit\taskbar"
 
-# Which value hides which button. 0 hides every one of them.
+# Which value hides which button. 0 hides every one of them. Widgets is not in
+# here: Windows 11 25H2 denies writes to TaskbarDa outright, elevated or not, so
+# the only switch left for it is the machine-wide DshAllowNewsAndInterests policy.
 $Buttons = [ordered]@{
     'Search box' = @{ Path = $Search;   Name = 'SearchboxTaskbarMode' }
     'Task view'  = @{ Path = $Advanced; Name = 'ShowTaskViewButton' }
-    'Widgets'    = @{ Path = $Advanced; Name = 'TaskbarDa' }
     'Chat'       = @{ Path = $Advanced; Name = 'TaskbarMn' }
     'Copilot'    = @{ Path = $Advanced; Name = 'ShowCopilotButton' }
 }
@@ -40,7 +41,11 @@ if ($Revert) {
         if ($null -eq $Value) {
             Remove-ItemProperty $Button.Value.Path -Name $Button.Value.Name -ErrorAction SilentlyContinue
         } else {
-            Set-ItemProperty $Button.Value.Path -Name $Button.Value.Name -Value $Value -Type DWord
+            try {
+                Set-ItemProperty $Button.Value.Path -Name $Button.Value.Name -Value $Value -Type DWord -ErrorAction Stop
+            } catch {
+                Write-Host "Could not restore $($Button.Key): $($_.Exception.Message)" -ForegroundColor Yellow
+            }
         }
     }
     reg import "$Backup\taskband.reg"
@@ -64,7 +69,13 @@ if (-not (Test-Path $Backup)) {
 }
 
 foreach ($Button in $Buttons.GetEnumerator()) {
-    Set-ItemProperty $Button.Value.Path -Name $Button.Value.Name -Value 0 -Type DWord
+    # A value Windows has locked down throws; name it and carry on, rather than
+    # leaving the pins in place over one button that will not budge.
+    try {
+        Set-ItemProperty $Button.Value.Path -Name $Button.Value.Name -Value 0 -Type DWord -ErrorAction Stop
+    } catch {
+        Write-Host "Could not hide $($Button.Key): $($_.Exception.Message)" -ForegroundColor Yellow
+    }
 }
 
 # A pin is two things: an entry in the Taskband blob, and for desktop apps a
@@ -73,5 +84,5 @@ Remove-ItemProperty $Taskband -Name Favorites, FavoritesResolve, FavoritesChange
 Remove-Item "$Pinned\*.lnk" -Force -ErrorAction SilentlyContinue
 
 Restart-Explorer
-Write-Host "Taskbar cleared: no search box, task view, widgets, chat or copilot, and no pins."
+Write-Host "Taskbar cleared: no search box, task view, chat or copilot, and no pins."
 Write-Host "Backed up to $Backup, put it all back with: ./configure-taskbar.ps1 -Revert"
