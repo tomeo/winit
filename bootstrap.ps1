@@ -17,7 +17,7 @@ if ($PSScriptRoot) {
     $repo = $PSScriptRoot
     git -C $repo pull
 } else {
-    $repo = "$env:USERPROFILE\code\winit"
+    $repo = "$env:USERPROFILE\code\tomeo\winit"
     if (Test-Path $repo) {
         git -C $repo pull
     } else {

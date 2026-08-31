@@ -10,7 +10,7 @@ Open a regular (non-admin) PowerShell and run:
 iwr -useb https://raw.githubusercontent.com/tomeo/winit/master/bootstrap.ps1 | iex
 ```
 
-This installs scoop and git, clones the repo to ~/code/winit and runs scripts/init.ps1. The flow:
+This installs scoop and git, clones the repo to ~/code/tomeo/winit and runs scripts/init.ps1. The flow:
 
 1. Any missing input (git e-mail and name) is asked for upfront.
 2. Everything then runs unattended, apart from two things: the GitHub SSH step opens a browser for gh auth on the first run, and there is one UAC prompt at the end for the elevated steps (WSL and the caps lock remap).
