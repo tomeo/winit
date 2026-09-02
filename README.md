@@ -13,7 +13,7 @@ iwr -useb https://raw.githubusercontent.com/tomeo/winit/master/bootstrap.ps1 | i
 This installs scoop and git, clones the repo to ~/code/tomeo/winit and runs scripts/init.ps1. The flow:
 
 1. Any missing input (git e-mail and name) is asked for upfront.
-2. Everything then runs unattended, apart from two things: the GitHub SSH step opens a browser for gh auth on the first run, and there is one UAC prompt at the end for the elevated steps (WSL and the caps lock remap).
+2. Everything then runs unattended, apart from three things: the GitHub SSH step opens a browser for gh auth on the first run, the Teams background step opens one for az login if the Azure CLI has no session, and there is one UAC prompt at the end for the elevated steps (WSL and the caps lock remap).
 3. Reboot when it finishes.
 
 The whole thing is safe to re-run: already installed apps are skipped (including apps winget can't see because they were installed via scoop), config steps are idempotent, and the current Windows Terminal settings are backed up to settings.json.bak before being overwritten.
@@ -50,6 +50,7 @@ The scripts can also be run one by one from a regular (non-admin) PowerShell, in
 ./scripts/set-keyboard-layouts.ps1
 ./scripts/set-default-browser.ps1
 ./scripts/set-power-and-lock.ps1
+./scripts/set-teams-background.ps1
 ./scripts/install-wsl.ps1
 ./scripts/remap-caps-lock-to-ctrl.ps1
 ```
@@ -58,6 +59,7 @@ Notes:
 
 * Don't use an elevated shell for the scoop scripts, the scoop installer refuses to run as admin.
 * install-wsl.ps1 and remap-caps-lock-to-ctrl.ps1 need an elevated shell (init.ps1 runs them via sudo).
+* set-teams-background.ps1 only does something when the machine is signed in as the work account the image belongs to (its -Upn default); on any other account it says so and skips. The image itself is not in this repo, which is public, but downloaded from SharePoint on each run.
 * install-nodejs.ps1 must run before install-vscode.ps1 (the settings script runs on node).
 * remap-caps-lock-to-ctrl.ps1 requires a reboot to take effect.
 * configure-taskbar.ps1 hides the search box, task view, chat and copilot buttons and unpins everything from the taskbar, leaving Start and the running apps. It restarts Explorer to apply, and backs the old taskbar up to %LOCALAPPDATA%\winit\taskbar first, so -Revert puts the pins and buttons back. Widgets is left alone: Windows 11 25H2 refuses writes to TaskbarDa, so the only way to hide that button is the machine-wide policy.
