@@ -4,17 +4,36 @@
 # the picture is fetched from SharePoint at run time instead of being committed:
 # the share link is not a secret, the picture behind it is. Downloading it needs
 # a token, which comes from the Azure CLI (installed by install-apps-winget.ps1).
+# -RestartTeams restarts Teams so a running client reads the new file, and
 # -Revert removes the background again.
 param(
     [string]$Url = 'https://infospobik.sharepoint.com/:i:/s/VartexAB/IQBqC9Z3qqL2TrNCXhJrOfzIAZSV_c0orjGz2S4wXuIhMyw?e=1XOlFF',
     [string]$Upn = 'tommy.ivarsson@vartex.se',
     [string]$Path,
+    [switch]$RestartTeams,
     [switch]$Revert
 )
 
 # Where the new Teams (the MSTeams app package, not the retired desktop client)
 # reads custom backgrounds from. Teams creates the folder itself on first run.
 $Uploads = "$env:LOCALAPPDATA\Packages\MSTeams_8wekyb3d8bbwe\LocalCache\Microsoft\MSTeams\Backgrounds\Uploads"
+
+# Teams reads the Uploads folder at startup, so a background added underneath a
+# running client does not turn up in the picker until it restarts. Asked to close
+# its window first; the tray process ignores that, so whatever is left is killed.
+function Restart-Teams {
+    if (-not (Get-Process -Name ms-teams -ErrorAction SilentlyContinue)) {
+        Write-Host 'Teams is not running, so it will read the folder at its next start.'
+        return
+    }
+    Get-Process -Name ms-teams | ForEach-Object { $null = $_.CloseMainWindow() }
+    Start-Sleep -Seconds 2
+    Get-Process -Name ms-teams -ErrorAction SilentlyContinue | Stop-Process -Force
+    Start-Sleep -Seconds 1
+    # A packaged app has no exe to launch by path, it starts through its app id.
+    Start-Process 'shell:AppsFolder\MSTeams_8wekyb3d8bbwe!MSTeams'
+    Write-Host 'Restarted Teams.'
+}
 
 # Full path on purpose: git's usr\bin is ahead of System32 on the PATH and its
 # own whoami does not understand /upn. Fails on a local account, hence the 2>$null.
@@ -38,7 +57,7 @@ if ($Revert) {
     }
     $Existing | Remove-Item -Force
     Write-Host "Removed the background from $Uploads"
-    Write-Host 'Restart Teams to drop it from the background picker.'
+    if ($RestartTeams) { Restart-Teams } else { Write-Host 'Restart Teams to drop it from the background picker.' }
     return
 }
 
@@ -100,6 +119,9 @@ $NewHash = (Get-FileHash -InputStream (New-Object IO.MemoryStream -ArgumentList 
 $OldHash = if (Test-Path $Background) { (Get-FileHash $Background).Hash }
 if ($NewHash -eq $OldHash) {
     Write-Host "$Name is already installed as a Teams background, skipping."
+    # Still worth restarting when asked: the usual reason the picker is missing a
+    # background is that it was installed underneath a client already running.
+    if ($RestartTeams) { Restart-Teams }
     return
 }
 
@@ -125,5 +147,7 @@ if ($Image) {
 }
 
 Write-Host "Installed $Name as a Teams background in $Uploads"
-Write-Host 'Restart Teams, then pick it under More > Video effects and settings.'
+if ($RestartTeams) { Restart-Teams } else { Write-Host 'Restart Teams so it reads the new file.' }
+Write-Host 'Then pick it under More > Video effects and settings. Teams remembers the choice,'
+Write-Host 'which lives in its own database and is not something this script can set.'
 Write-Host 'Remove it again with: ./set-teams-background.ps1 -Revert'
