@@ -50,7 +50,7 @@ The scripts can also be run one by one from a regular (non-admin) PowerShell, in
 ./scripts/set-keyboard-layouts.ps1
 ./scripts/set-default-browser.ps1
 ./scripts/set-power-and-lock.ps1
-./scripts/set-teams-background.ps1
+./scripts/get-teams-background.ps1
 ./scripts/install-wsl.ps1
 ./scripts/remap-caps-lock-to-ctrl.ps1
 ```
@@ -59,7 +59,7 @@ Notes:
 
 * Don't use an elevated shell for the scoop scripts, the scoop installer refuses to run as admin.
 * install-wsl.ps1 and remap-caps-lock-to-ctrl.ps1 need an elevated shell (init.ps1 runs them via sudo).
-* set-teams-background.ps1 only does something when the machine is signed in as the work account the image belongs to (its -Upn default); on any other account it says so and skips. The image itself is not in this repo, which is public, but downloaded from SharePoint on each run. -RestartTeams restarts Teams afterwards, which a running client needs before the background turns up in the picker. Picking it there is a manual step: the selection lives in Teams' own database, not in a file.
+* get-teams-background.ps1 downloads the Teams background image to %LOCALAPPDATA%\winit\teams-background and stops there, because the upload into Teams cannot be scripted: build 26213 keeps custom backgrounds in the service, which makes the local Backgrounds\Uploads folder a download cache rather than a drop folder, and every authz endpoint that used to mint a token for the upload API now answers 410. Upload the file once under More > Video effects and settings > Add new and the service roams it to every machine, so it is one upload per account rather than per machine. The script only does anything when the machine is signed in as the work account the image belongs to (its -Upn default); on any other account it says so and skips. The image itself is not in this repo, which is public, but fetched from SharePoint on each run. -Open opens Explorer with the downloaded file selected.
 * install-nodejs.ps1 must run before install-vscode.ps1 (the settings script runs on node).
 * remap-caps-lock-to-ctrl.ps1 requires a reboot to take effect.
 * configure-taskbar.ps1 hides the search box, task view, chat and copilot buttons and unpins everything from the taskbar, leaving Start and the running apps. It restarts Explorer to apply, and backs the old taskbar up to %LOCALAPPDATA%\winit\taskbar first, so -Revert puts the pins and buttons back. Widgets is left alone: Windows 11 25H2 refuses writes to TaskbarDa, so the only way to hide that button is the machine-wide policy.
