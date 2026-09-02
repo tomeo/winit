@@ -34,6 +34,8 @@ Install-App Anthropic.Claude
 Install-App Microsoft.AzureVPNClient
 # WhatsApp is Store-only, hence the msstore source and product id.
 Install-App 9NKSQGP7F2NH -Source msstore
+# ChatGPT is Store-only too. The ids on the winget source are third-party wrappers, not OpenAI.
+Install-App 9PLM9XGG6VKS -Source msstore
 
 # Dev tools
 Install-App GitHub.cli
