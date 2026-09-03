@@ -26,6 +26,7 @@ Invoke-Step 'CLI and dev tools (scoop)' { ./install-apps-scoop.ps1 }
 Invoke-Step 'Apps (winget)'             { ./install-apps-winget.ps1 }
 Invoke-Step 'Fonts'                     { ./install-fonts.ps1 }
 Invoke-Step 'Node.js and npm packages'  { ./install-nodejs.ps1 }
+Invoke-Step 'Chrome DevTools MCP'       { ./configure-claude-mcp.ps1 }
 Invoke-Step 'VS Code'                   { ./install-vscode.ps1 }
 Invoke-Step 'Git config'                { ./configure-git.ps1 -Email $GitEmail -FullName $GitFullName }
 Invoke-Step 'GitHub SSH'                { ./configure-github-ssh.ps1 -Email $GitEmail }
