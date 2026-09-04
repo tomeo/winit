@@ -40,8 +40,8 @@ Invoke-Step 'Power and lock'            { ./set-power-and-lock.ps1 }
 Invoke-Step 'Teams background'          { ./get-teams-background.ps1 }
 
 # The steps that need elevation run in one go: a single UAC prompt.
-Invoke-Step 'WSL and caps lock remap (elevated)' {
-    sudo powershell -NoProfile -ExecutionPolicy Bypass -Command "& '$PSScriptRoot\install-wsl.ps1'; & '$PSScriptRoot\remap-caps-lock-to-ctrl.ps1'"
+Invoke-Step 'WSL, caps lock remap and Hello face (elevated)' {
+    sudo powershell -NoProfile -ExecutionPolicy Bypass -Command "& '$PSScriptRoot\install-wsl.ps1'; & '$PSScriptRoot\remap-caps-lock-to-ctrl.ps1'; & '$PSScriptRoot\disable-hello-face.ps1'"
 }
 
 Pop-Location
