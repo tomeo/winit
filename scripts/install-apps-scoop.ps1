@@ -4,6 +4,7 @@ scoop install jq
 scoop install pandoc
 scoop install go
 scoop install terraform
+scoop install extras/gcloud
 scoop install postgresql
 scoop install dbmate
 scoop install python
