@@ -50,6 +50,7 @@ The scripts can also be run one by one from a regular (non-admin) PowerShell, in
 ./scripts/configure-taskbar.ps1
 ./scripts/set-keyboard-layouts.ps1
 ./scripts/set-default-browser.ps1
+./scripts/set-default-markdown-editor.ps1
 ./scripts/set-power-and-lock.ps1
 ./scripts/get-teams-background.ps1
 ./scripts/install-wsl.ps1
@@ -67,6 +68,7 @@ Notes:
 * remap-caps-lock-to-ctrl.ps1 requires a reboot to take effect.
 * disable-hello-face.ps1 takes the camera out of Windows Hello so sign-in is PIN and password. It disables only the face recognition unit (a software device on top of the IR camera), so the normal camera keeps working in Teams and the fingerprint reader is untouched. The face enrolment stays in the biometric database, so -Revert re-enables the device and face sign-in is back without setting it up again.
 * configure-taskbar.ps1 hides the search box, task view, chat and copilot buttons and unpins everything from the taskbar, leaving Start and the running apps. It restarts Explorer to apply, and backs the old taskbar up to %LOCALAPPDATA%\winit\taskbar first, so -Revert puts the pins and buttons back. Widgets is left alone: Windows 11 25H2 refuses writes to TaskbarDa, so the only way to hide that button is the machine-wide policy.
+* set-default-markdown-editor.ps1 makes .md files open in VS Code, by registering the CodeOSS.md ProgId (the same one scoop's install-associations.reg uses) for .md alone rather than the 90-odd extensions that file claims. It only works while no choice has been saved for .md: once Windows has written a UserChoice the hash protects it, so the script then says so and opens Settings, the same way set-default-browser.ps1 does.
 * set-power-and-lock.ps1 stops the machine from sleeping on AC and locks it after 5 minutes idle instead, so background jobs survive an idle lunch. -LockAfterMinutes changes the delay, -Revert undoes it. Battery is left alone.
 
 ## Clone your repos

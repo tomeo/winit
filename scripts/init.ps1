@@ -36,6 +36,7 @@ Invoke-Step 'Explorer settings'         { ./configure-explorer.ps1 }
 Invoke-Step 'Taskbar'                   { ./configure-taskbar.ps1 }
 Invoke-Step 'Keyboard layouts'          { ./set-keyboard-layouts.ps1 }
 Invoke-Step 'Default browser'           { ./set-default-browser.ps1 }
+Invoke-Step 'Default markdown editor'   { ./set-default-markdown-editor.ps1 }
 Invoke-Step 'Power and lock'            { ./set-power-and-lock.ps1 }
 Invoke-Step 'Teams background'          { ./get-teams-background.ps1 }
 
