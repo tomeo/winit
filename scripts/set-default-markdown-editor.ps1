@@ -11,13 +11,17 @@ if (-not (Test-Path $CodeExe)) {
 
 $ProgId = 'CodeOSS.md'
 $Key = "HKCU:\Software\Classes\$ProgId"
-$Icon = Join-Path $env:USERPROFILE 'scoop\apps\vscode\current\resources\app\resources\win32\markdown.ico'
+# The icon is Code.exe's own, not the markdown.ico scoop's reg file points at:
+# since 1.133 VS Code keeps its resources under a build-hash folder that changes
+# with every update, so a path into it goes stale (which is why that reg file
+# leaves .md iconless too). Code.exe sits behind the stable current junction.
+$Icon = "`"$CodeExe`",0"
 
 New-Item -Path "$Key\shell\open\command" -Force | Out-Null
 New-Item -Path "$Key\DefaultIcon" -Force | Out-Null
 Set-ItemProperty -Path $Key -Name '(default)' -Value 'Markdown Source File'
 Set-ItemProperty -Path $Key -Name 'AppUserModelID' -Value 'Microsoft.CodeOSS'
-Set-ItemProperty -Path "$Key\DefaultIcon" -Name '(default)' -Value "`"$Icon`""
+Set-ItemProperty -Path "$Key\DefaultIcon" -Name '(default)' -Value $Icon
 Set-ItemProperty -Path "$Key\shell\open" -Name 'Icon' -Value "`"$CodeExe`""
 Set-ItemProperty -Path "$Key\shell\open\command" -Name '(default)' -Value "`"$CodeExe`" `"%1`""
 
@@ -33,6 +37,7 @@ public static extern void SHChangeNotify(int eventId, uint flags, System.IntPtr 
 '@
 }
 [Winit.Shell]::SHChangeNotify(0x08000000, 0, [IntPtr]::Zero, [IntPtr]::Zero)
+ie4uinit.exe -show   # drops the cached icon for the extension
 
 $Choice = (Get-ItemProperty 'HKCU:\Software\Microsoft\Windows\CurrentVersion\Explorer\FileExts\.md\UserChoice' -ErrorAction SilentlyContinue).ProgId
 if ($Choice -and $Choice -ne $ProgId) {
