@@ -52,6 +52,7 @@ The scripts can also be run one by one from a regular (non-admin) PowerShell, in
 ./scripts/set-default-browser.ps1
 ./scripts/set-default-markdown-editor.ps1
 ./scripts/set-power-and-lock.ps1
+./scripts/set-touchpad-gestures.ps1
 ./scripts/get-teams-background.ps1
 ./scripts/install-wsl.ps1
 ./scripts/remap-caps-lock-to-ctrl.ps1
@@ -70,6 +71,7 @@ Notes:
 * configure-taskbar.ps1 hides the search box, task view, chat and copilot buttons and unpins everything from the taskbar, leaving Start and the running apps. It restarts Explorer to apply, and backs the old taskbar up to %LOCALAPPDATA%\winit\taskbar first, so -Revert puts the pins and buttons back. Widgets is left alone: Windows 11 25H2 refuses writes to TaskbarDa, so the only way to hide that button is the machine-wide policy.
 * set-default-markdown-editor.ps1 makes .md files open in VS Code, by registering the CodeOSS.md ProgId (the same one scoop's install-associations.reg uses) for .md alone rather than the 90-odd extensions that file claims. It only works while no choice has been saved for .md: once Windows has written a UserChoice the hash protects it, so the script then says so and opens Settings, the same way set-default-browser.ps1 does. The icon is Code.exe's own rather than the markdown.ico that reg file names: since 1.133 VS Code keeps its resources under a build-hash folder that changes with every update, so a path into it goes stale and .md ends up with no icon at all.
 * set-power-and-lock.ps1 stops the machine from sleeping on AC and locks it after 5 minutes idle instead, so background jobs survive an idle lunch. -LockAfterMinutes changes the delay, -Revert undoes it. Battery is left alone.
+* set-touchpad-gestures.ps1 sets the three finger swipes and taps to Nothing, so a third finger landing during a two finger scroll no longer throws up Task View. Two finger scrolling, zoom and taps are left alone. -IncludeFourFinger turns off the four finger gestures as well, -Revert puts the Windows defaults back. The values are per user and live in HKCU, so no elevation and no effect on other accounts.
 
 ## Clone your repos
 

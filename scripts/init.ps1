@@ -38,6 +38,7 @@ Invoke-Step 'Keyboard layouts'          { ./set-keyboard-layouts.ps1 }
 Invoke-Step 'Default browser'           { ./set-default-browser.ps1 }
 Invoke-Step 'Default markdown editor'   { ./set-default-markdown-editor.ps1 }
 Invoke-Step 'Power and lock'            { ./set-power-and-lock.ps1 }
+Invoke-Step 'Touchpad gestures'         { ./set-touchpad-gestures.ps1 }
 Invoke-Step 'Teams background'          { ./get-teams-background.ps1 }
 
 # The steps that need elevation run in one go: a single UAC prompt.
