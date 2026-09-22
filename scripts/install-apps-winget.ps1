@@ -46,6 +46,9 @@ Install-App Microsoft.DotNet.SDK.10
 # cloudflared: Cloudflare Access client. `access login` + `access token` reach
 # apps behind Access from a terminal. (Also does Tunnels; we only want the client.)
 Install-App Cloudflare.cloudflared
+# herdr: terminal server for coding agents. Herdr, Inc. only ships a preview build
+# on winget; the `herdr` moniker points at hdosys.herdr-win, an unofficial fork.
+Install-App Herdr.Herdr.Preview
 
 # The cloudflared MSI does not add itself to PATH, so the binary is unusable by
 # name even after a successful install. User PATH, so no elevation is needed.
