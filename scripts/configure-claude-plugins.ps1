@@ -4,13 +4,12 @@
 #   and find-references instead of grep. They only wire the language servers up;
 #   the servers themselves are npm packages that install-nodejs.ps1 installs.
 # - microsoft-docs looks things up in Microsoft Learn, which covers Graph.
-# - hookify turns recurring "never do X" rules into hooks that block the call.
 # Safe to re-run: an installed plugin is left alone. -Remove uninstalls them.
 param([switch]$Remove)
 
 $Marketplace = 'claude-plugins-official'
 $MarketplaceSource = 'anthropics/claude-plugins-official'
-$Plugins = @('pyright-lsp', 'typescript-lsp', 'microsoft-docs', 'hookify')
+$Plugins = @('pyright-lsp', 'typescript-lsp', 'microsoft-docs')
 
 # claude.cmd first, for the same reason as in configure-claude-mcp.ps1: the
 # claude.ps1 shim mangles arguments on the way through.
