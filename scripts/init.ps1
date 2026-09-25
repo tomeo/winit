@@ -28,6 +28,7 @@ Invoke-Step 'Fonts'                     { ./install-fonts.ps1 }
 Invoke-Step 'Node.js and npm packages'  { ./install-nodejs.ps1 }
 Invoke-Step 'Chrome DevTools MCP'       { ./configure-claude-mcp.ps1 }
 Invoke-Step 'Claude Code skills'        { ./configure-claude-skills.ps1 }
+Invoke-Step 'Claude Code plugins'       { ./configure-claude-plugins.ps1 }
 Invoke-Step 'VS Code'                   { ./install-vscode.ps1 }
 Invoke-Step 'Git config'                { ./configure-git.ps1 -Email $GitEmail -FullName $GitFullName }
 Invoke-Step 'GitHub SSH'                { ./configure-github-ssh.ps1 -Email $GitEmail }

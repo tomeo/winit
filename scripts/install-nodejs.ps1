@@ -10,6 +10,9 @@ npm i -g elasticdump
 npm i -g md-mermaid-to-pdf
 npm i -g md-to-pdf
 npm i -g playwright
+# Language servers for the pyright-lsp and typescript-lsp Claude Code plugins.
+npm i -g pyright
+npm i -g typescript typescript-language-server
 npm i -g tailwindcss
 npm i -g wrangler
 npm i -g yarn
