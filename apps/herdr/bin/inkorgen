@@ -1,0 +1,51 @@
+#!/usr/bin/env python3
+"""Hur mycket som ligger i inkorgen, som en rad till Herdrs tabbrad.
+
+    inkorgen              "📬 259 (112)" — allt i inkorgen, olästa inom parentes
+
+Totalen är ryggsäcken: en besvarad tråd arkiveras, så det som ligger kvar är
+det som inte är avklarat. Olästa är det som kommit sedan sist. Läser bara.
+
+Tyst när något går fel — se nasta-mote för varför.
+"""
+
+import json
+import subprocess
+import sys
+import urllib.request
+
+GRAPH = "https://graph.microsoft.com/v1.0"
+
+try:
+    sys.stdout.reconfigure(encoding="utf-8", newline='\n')
+except Exception:
+    pass
+
+
+def main():
+    out = subprocess.run(["wsg", "token", "--scopes", "Mail.ReadWrite"],
+                         capture_output=True, text=True)
+    if out.returncode != 0:
+        return
+    req = urllib.request.Request(
+        GRAPH + "/me/mailFolders/inbox?$select=totalItemCount,unreadItemCount")
+    req.add_header("Authorization", "Bearer " + out.stdout.strip())
+    with urllib.request.urlopen(req, timeout=15) as r:
+        folder = json.loads(r.read())
+    total = folder.get("totalItemCount", 0)
+    unread = folder.get("unreadItemCount", 0)
+    # Lådan själv säger vilket läge det är, så orden behövs inte: 📬 har olästa,
+    # 📪 har bara sådant jag sett men inte avslutat, 📭 är tom.
+    if not total:
+        print("📭")
+    elif unread:
+        print("📬 %d (%d)" % (total, unread))
+    else:
+        print("📪 %d" % total)
+
+
+if __name__ == "__main__":
+    try:
+        main()
+    except Exception:
+        pass

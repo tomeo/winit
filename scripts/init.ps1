@@ -34,6 +34,7 @@ Invoke-Step 'Git config'                { ./configure-git.ps1 -Email $GitEmail -
 Invoke-Step 'GitHub SSH'                { ./configure-github-ssh.ps1 -Email $GitEmail }
 Invoke-Step 'Dotfiles'                  { ./configure-dotfiles.ps1 }
 Invoke-Step 'Windows Terminal config'   { ./configure-windows-terminal.ps1 }
+Invoke-Step 'Herdr config'              { ./configure-herdr.ps1 }
 Invoke-Step 'Explorer settings'         { ./configure-explorer.ps1 }
 Invoke-Step 'Taskbar'                   { ./configure-taskbar.ps1 }
 Invoke-Step 'Keyboard layouts'          { ./set-keyboard-layouts.ps1 }

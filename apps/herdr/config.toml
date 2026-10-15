@@ -1,0 +1,34 @@
+onboarding = false
+
+[keys]
+previous_workspace = "ctrl+alt+up"
+next_workspace = "ctrl+alt+down"
+
+[ui.toast]
+delivery = "herdr"
+
+[ui]
+status_indicators = "symbols"
+agent_panel_sort = "priority"
+
+# Statusraden längst upp till höger: Site Watch-larm, inkorgen och nästa möte.
+# Kommandona körs på Herdr-servern, inte i panelen, så raden står kvar oavsett
+# space och tab. Scripten ligger i winit (apps/herdr/bin) och kräver wsg.
+# %USERPROFILE% expanderas av cmd.exe, så configen passar vilken maskin som helst.
+# Herdr tar inte emot ANSI-färger här — ikonen är det enda som kan färga raden.
+tab_bar_right_separator = "  ·  "
+tab_bar_right = [
+  { type = "command", command = 'python %USERPROFILE%\bin\aktiva-larm', interval_seconds = 120, timeout_seconds = 20 },
+  { type = "command", command = 'python %USERPROFILE%\bin\inkorgen', interval_seconds = 60, timeout_seconds = 20 },
+  { type = "command", command = 'python %USERPROFILE%\bin\nasta-mote', interval_seconds = 60, timeout_seconds = 20 },
+]
+
+[ui.sidebar.agents]
+rows = [["state_icon", "workspace", "tab"]]
+
+[ui.sidebar.spaces]
+rows = [["state_icon", "workspace", "branch"]]
+
+[theme]
+name = "solarized"
+auto_switch = false

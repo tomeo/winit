@@ -1,0 +1,69 @@
+#!/usr/bin/env python3
+"""Aktiva larm från Site Watch i Arena, som en rad till Herdrs tabbrad.
+
+    aktiva-larm           "✅ Sites OK", annars "❌ 1 ⚠️ 2"
+    aktiva-larm --all     ett larm per rad, med domän och rubrik
+
+Ikonen bär betydelsen och siffran mängden: ❌ acute, ⚠️ watch, ℹ️ info, var och
+en bara när den har något att säga. Raden ska gå att läsa i ögonvrån, och det
+som behöver en förklaring hör hemma i --all.
+
+Aktivt = inte löst, alltså öppna och kvitterade tillsammans. En kvittering
+stoppar eskaleringen men lagar ingenting, så den ska synas i siffran.
+
+WSG_ARENA_NO_RELOGIN stänger av den interaktiva inloggningen: utan den skulle
+ett utgånget Arena-pass starta en webbläsarinloggning var sjättionde sekund
+från statusraden. wsg kollar visserligen om stderr är en terminal, men här är
+det värt att säga rakt ut. När passet gått ut blir raden tyst tills du kör
+`wsg arena login`.
+"""
+
+import json
+import os
+import subprocess
+import sys
+
+# Herdr tar inte emot ANSI-färger i statusraden (provat 2026-10-15), och posterna
+# i tab_bar_right har inga stilfält. Emojin är alltså allt vi har att färga med.
+ICONS = [("acute", "❌"), ("watch", "⚠️"), ("info", "ℹ️")]
+
+try:
+    sys.stdout.reconfigure(encoding="utf-8", newline='\n')
+except Exception:
+    pass
+
+
+def incidents():
+    env = dict(os.environ, WSG_ARENA_NO_RELOGIN="1")
+    out = subprocess.run(["wsg", "arena", "incidents", "--json"],
+                         capture_output=True, text=True, encoding="utf-8", env=env)
+    if out.returncode != 0:
+        raise RuntimeError(out.stderr.strip() or "wsg arena incidents: %s" % out.returncode)
+    return json.loads(out.stdout or "[]")
+
+
+def main():
+    show_all = "--all" in sys.argv[1:]
+    try:
+        found = incidents()
+    except Exception as e:
+        if show_all:
+            sys.exit("Gick inte att läsa Site Watch: %s" % e)
+        return
+    if show_all:
+        for i in found:
+            print("%-6s %-13s %-22s %s" % (i.get("severity"), i.get("status"),
+                                           i.get("domain"), i.get("title")))
+        if not found:
+            print("inga aktiva larm")
+        return
+    parts = []
+    for severity, icon in ICONS:
+        n = sum(1 for i in found if i.get("severity") == severity)
+        if n:
+            parts.append("%s %d" % (icon, n))
+    print(" ".join(parts) if parts else "✅ Sites OK")
+
+
+if __name__ == "__main__":
+    main()

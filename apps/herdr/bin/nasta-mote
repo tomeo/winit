@@ -1,0 +1,135 @@
+#!/usr/bin/env python3
+"""Nästa möte på jobbkalendern, som en rad att visa i Herdrs tabbrad.
+
+    nasta-mote            en rad, t.ex. "Ledningsmöte 14:00 (om 35 min)"
+    nasta-mote --all      de närmaste posterna och vad som sorterats bort
+
+Körs av `ui.tab_bar_right` i ~/AppData/Roaming/herdr/config.toml med ett
+intervall, så den är tyst när något går fel: en traceback i statusraden hjälper
+ingen, och raden ska aldrig vara anledningen till att något ser trasigt ut.
+Felet syns med --all i stället.
+
+Tiderna är svensk väggklocka. Graph svarar i UTC om man inte ber om annat, och
+en Prefer-header med zonen gör att dateTime-strängarna redan står rätt.
+"""
+
+import json
+import subprocess
+import sys
+import urllib.parse
+import urllib.request
+from datetime import datetime, timedelta
+
+GRAPH = "https://graph.microsoft.com/v1.0"
+ZONE = "W. Europe Standard Time"
+HORIZON_DAYS = 7
+MAX_SUBJECT = 26
+SOON_MINUTES = 5
+DAYS = ["mån", "tis", "ons", "tors", "fre", "lör", "sön"]
+
+# cal-blocks stående block utanför arbetstid heter likadant som en speglad
+# privat bokning (wsg mscal.py). Skillnaden är att blocken är en serie: de
+# återkommande instanserna är bruset, den enstaka är tandläkaren.
+BLOCK_TITLES = ("🔒 Upptagen", "🚗 Restid")
+
+# Windows ger stdout cp1252, och raden innehåller både ▸ och kalenderns egna
+# emoji. Utan det här dör scriptet på en titel det inte kan skriva ut.
+try:
+    sys.stdout.reconfigure(encoding="utf-8", newline='\n')
+except Exception:
+    pass
+
+
+def token():
+    out = subprocess.run(["wsg", "token", "--scopes", "Calendars.ReadWrite"],
+                         capture_output=True, text=True)
+    if out.returncode != 0:
+        raise RuntimeError("wsg token: %s" % (out.stderr.strip() or out.returncode))
+    return out.stdout.strip()
+
+
+def events(now):
+    # Fönstrets gränser MÅSTE bära sin offset. Utan den läser Graph dem som UTC
+    # medan svaret kommer i svensk tid (Prefer-headern), och fönstret glider två
+    # timmar fram: mötet 14:30 föll ur listan när klockan passerade 13:00, fast
+    # det var två och en halv timme kvar till det. Hittat 2026-10-15.
+    q = urllib.parse.urlencode({
+        "startDateTime": now.astimezone().isoformat(),
+        "endDateTime": (now + timedelta(days=HORIZON_DAYS)).astimezone().isoformat(),
+        "$select": "subject,start,end,isAllDay,isCancelled,showAs,type,responseStatus",
+        "$orderby": "start/dateTime",
+        "$top": "25",
+    })
+    req = urllib.request.Request(GRAPH + "/me/calendarView?" + q)
+    req.add_header("Authorization", "Bearer " + token())
+    req.add_header("Prefer", 'outlook.timezone="%s"' % ZONE)
+    with urllib.request.urlopen(req, timeout=15) as r:
+        return json.loads(r.read()).get("value", [])
+
+
+def skip_reason(ev):
+    if ev.get("isCancelled"):
+        return "inställt"
+    if ev.get("isAllDay"):
+        return "heldag"
+    if ev.get("showAs") == "free":
+        return "ledig"
+    if (ev.get("responseStatus") or {}).get("response") == "declined":
+        return "tackat nej"
+    if ev.get("subject") in BLOCK_TITLES and ev.get("type") != "singleInstance":
+        return "stående block"
+    return None
+
+
+def when(ev):
+    return (datetime.fromisoformat(ev["start"]["dateTime"][:19]),
+            datetime.fromisoformat(ev["end"]["dateTime"][:19]))
+
+
+def line(ev, now):
+    start, end = when(ev)
+    subject = (ev.get("subject") or "(utan ämne)").strip()
+    if len(subject) > MAX_SUBJECT:
+        subject = subject[:MAX_SUBJECT - 1].rstrip() + "…"
+    span = "%s–%s" % (start.strftime("%H:%M"), end.strftime("%H:%M"))
+    if start.date() != now.date():
+        span = "%s %s" % (DAYS[start.weekday()], span)
+    # Ikonen är radens enda larm: kalender så länge mötet bara står där, klocka
+    # de sista minuterna, play när det redan är igång. Tiderna säger resten.
+    if start <= now:
+        icon = "▶️"
+    elif start - now <= timedelta(minutes=SOON_MINUTES):
+        icon = "⏰"
+    else:
+        icon = "📅"
+    return "%s %s %s" % (icon, subject, span)
+
+
+def main():
+    show_all = "--all" in sys.argv[1:]
+    now = datetime.now().replace(microsecond=0)
+    try:
+        found = events(now)
+    except Exception as e:  # tyst i statusraden, tydlig med --all
+        if show_all:
+            sys.exit("Gick inte att läsa kalendern: %s" % e)
+        return
+    if show_all:
+        for ev in found:
+            start, end = when(ev)
+            why = skip_reason(ev)
+            print("%s–%s  %-30s %s" % (start.strftime("%a %H:%M"), end.strftime("%H:%M"),
+                                       (ev.get("subject") or "")[:30],
+                                       "[%s]" % why if why else ""))
+        if not found:
+            print("inget i kalendern de närmaste %d dygnen" % HORIZON_DAYS)
+        return
+    for ev in found:
+        if not skip_reason(ev):
+            print(line(ev, now))
+            return
+    print("inga möten")
+
+
+if __name__ == "__main__":
+    main()
