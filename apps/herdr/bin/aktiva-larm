@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 """Aktiva larm från Site Watch i Arena, som en rad till Herdrs tabbrad.
 
-    aktiva-larm           "✅ Sites OK", annars "❌ 1 ⚠️ 2"
-    aktiva-larm --all     ett larm per rad, med domän och rubrik
+    aktiva-larm           "✅ Sites OK", annars "❌ 1 ⚠️ 2" eller "✅ Sites OK 🚫 3"
+    aktiva-larm --all     ett larm per rad, med domän och rubrik, och de blockerade
 
 Står alla larm på en och samma site hamnar domänen sist på raden,
 "❌ 1 backpackinglight.dk", eftersom det är nästa fråga ändå och det får
@@ -16,6 +16,26 @@ som behöver en förklaring hör hemma i --all.
 Aktivt = inte löst, alltså öppna och kvitterade tillsammans. En kvittering
 stoppar eskaleringen men lagar ingenting, så den ska synas i siffran.
 
+🚫 är siter vars senaste prob blev blockerad, 403 eller 429 från siten eller
+dess WAF. De larmar inte och ska inte larma — det är inte ett fel på siten —
+men de mäts inte heller: deras uptime räknas utan de svaren, så en blockerad
+site är en site Site Watch är blind för. Därför syns de även bredvid ett
+"✅ Sites OK", och det är ingen motsägelse: inget larmar, och tre siter vet vi
+inget om. Mutade och de i underhåll räknas inte, av samma skäl som de inte
+larmar.
+
+Siffran rör sig: 403 från de siter som alltid blockerar ligger still, medan
+429 är plattformens egen fartspärr och kommer och går mellan svepen.
+
+Två läsningar, för de ligger i var sin ände av API:t:
+
+    wsg arena incidents --json          larmen
+    wsg arena get /api/site-watch/status   hela tavlan, med senaste probsvar
+
+Tavlan är ett halvt megabyte, så den läses bara för blockeringarnas skull och
+får misslyckas för sig: går den inte att hämta tappar raden sitt 🚫 men
+behåller larmen.
+
 WSG_ARENA_NO_RELOGIN stänger av den interaktiva inloggningen: utan den skulle
 ett utgånget Arena-pass starta en webbläsarinloggning var sjättionde sekund
 från statusraden. wsg kollar visserligen om stderr är en terminal, men här är
@@ -27,10 +47,12 @@ import json
 import os
 import subprocess
 import sys
+from datetime import datetime, timezone
 
 # Herdr tar inte emot ANSI-färger i statusraden (provat 2026-10-15), och posterna
 # i tab_bar_right har inga stilfält. Emojin är alltså allt vi har att färga med.
 ICONS = [("acute", "❌"), ("watch", "⚠️"), ("info", "ℹ️")]
+BLOCKED_ICON = "🚫"
 
 try:
     sys.stdout.reconfigure(encoding="utf-8", newline='\n')
@@ -38,13 +60,40 @@ except Exception:
     pass
 
 
-def incidents():
+def arena(args):
     env = dict(os.environ, WSG_ARENA_NO_RELOGIN="1")
-    out = subprocess.run(["wsg", "arena", "incidents", "--json"],
+    out = subprocess.run(["wsg", "arena"] + args,
                          capture_output=True, text=True, encoding="utf-8", env=env)
     if out.returncode != 0:
-        raise RuntimeError(out.stderr.strip() or "wsg arena incidents: %s" % out.returncode)
-    return json.loads(out.stdout or "[]")
+        raise RuntimeError(out.stderr.strip() or "wsg arena %s: %s" % (args[0], out.returncode))
+    return json.loads(out.stdout or "null")
+
+
+def incidents():
+    return arena(["incidents", "--json"]) or []
+
+
+def muted(target):
+    """Tyst just nu? Tiderna i Arena är UTC utan zon i strängen."""
+    until = target.get("mutedUntil")
+    if not until:
+        return False
+    try:
+        return datetime.strptime(until[:19], "%Y-%m-%d %H:%M:%S").replace(
+            tzinfo=timezone.utc) > datetime.now(timezone.utc)
+    except ValueError:
+        # Ett datum vi inte känner igen får tysta siten hellre än att larma.
+        return True
+
+
+def blocked():
+    """Siter vars senaste prob blev blockerad, och som faktiskt övervakas."""
+    board = arena(["get", "/api/site-watch/status"]) or {}
+    return [t for t in board.get("targets", [])
+            if t.get("lastOutcome") == "blocked"
+            and t.get("state") == "active"
+            and not t.get("inMaintenance")
+            and not muted(t)]
 
 
 def main():
@@ -55,22 +104,42 @@ def main():
         if show_all:
             sys.exit("Gick inte att läsa Site Watch: %s" % e)
         return
+    try:
+        stopped, board_error = blocked(), None
+    except Exception as e:
+        stopped, board_error = [], e
+
     if show_all:
         for i in found:
             print("%-6s %-13s %-22s %s" % (i.get("severity"), i.get("status"),
                                            i.get("domain"), i.get("title")))
         if not found:
             print("inga aktiva larm")
+        if board_error:
+            print("blockerade: gick inte att läsa tavlan: %s" % board_error)
+        for t in stopped:
+            print("%-6s %-13s %-22s senaste probsvar %s" % ("block", t.get("lastOutcome"),
+                                                            t.get("domain"), t.get("lastStatus")))
+        if not board_error and not stopped:
+            print("inga blockerade siter")
         return
+
     parts = []
     for severity, icon in ICONS:
         n = sum(1 for i in found if i.get("severity") == severity)
         if n:
             parts.append("%s %d" % (icon, n))
+    if not parts:
+        parts.append("✅ Sites OK")
+    if stopped:
+        parts.append("%s %d" % (BLOCKED_ICON, len(stopped)))
+    # Domänen när hela raden handlar om samma site, larm och blockering
+    # tillsammans: det är nästa fråga ändå, och den får plats just då.
     domains = {i.get("domain") for i in found if i.get("domain")}
-    if parts and len(domains) == 1:
+    domains |= {t.get("domain") for t in stopped if t.get("domain")}
+    if len(domains) == 1 and (found or stopped):
         parts.append(domains.pop())
-    print(" ".join(parts) if parts else "✅ Sites OK")
+    print(" ".join(parts))
 
 
 if __name__ == "__main__":
