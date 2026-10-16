@@ -11,19 +11,22 @@ delivery = "herdr"
 status_indicators = "symbols"
 agent_panel_sort = "priority"
 
-# Statusraden längst upp till höger: maskinens tryck, Site Watch-larm,
-# inkorgen och nästa möte.
+# Statusraden längst upp till höger: maskinens tryck, högen i Grit, Site
+# Watch-larm, inkorgen och nästa möte.
 # Kommandona körs på Herdr-servern, inte i panelen, så raden står kvar oavsett
-# space och tab. Scripten ligger i winit (apps/herdr/bin) och kräver wsg.
+# space och tab. Scripten ligger i winit (apps/herdr/bin) och kräver wsg
+# (och för gritten servicetokenen i ~/.hidden/secrets.json).
 # %USERPROFILE% expanderas av cmd.exe, så configen passar vilken maskin som helst.
 # Herdr tar inte emot ANSI-färger här — ikonen är det enda som kan färga raden.
 #
-# trycket står först för att raden är högerställd: posten längst till
-# vänster kan byta bredd (💿-delen kommer och går) utan att de andra tre
-# flyttar sig i sidled varje gång.
+# Ordningen styrs av att raden är högerställd: en post som byter bredd knuffar
+# bara det som står till vänster om den. trycket står därför först (💿-delen
+# kommer och går oftast) och gritten näst först, eftersom dess 🔥 📍 🏁 kommer
+# och går några gånger om dagen. De tre till höger om dem står still.
 tab_bar_right_separator = "  ·  "
 tab_bar_right = [
   { type = "command", command = 'python %USERPROFILE%\bin\trycket', interval_seconds = 30, timeout_seconds = 20 },
+  { type = "command", command = 'python %USERPROFILE%\bin\gritten', interval_seconds = 120, timeout_seconds = 20 },
   { type = "command", command = 'python %USERPROFILE%\bin\aktiva-larm', interval_seconds = 120, timeout_seconds = 20 },
   { type = "command", command = 'python %USERPROFILE%\bin\inkorgen', interval_seconds = 60, timeout_seconds = 20 },
   { type = "command", command = 'python %USERPROFILE%\bin\nasta-mote', interval_seconds = 60, timeout_seconds = 20 },

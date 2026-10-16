@@ -1,0 +1,158 @@
+#!/usr/bin/env python3
+"""Högen i Grit, som en rad till Herdrs tabbrad.
+
+    gritten               "📋 158  🔥 1  📍 1  🏁 17"
+    gritten --all         samma rad plus siffrorna bakom den, och fel syns
+
+📋 är hela högen: öppna plus pågående, precis det tal appens egen rubrik visar.
+Det är ryggsäcken, inte dagens arbete, och den rör sig långsamt. De tre andra
+är dagen och syns bara när de har något att säga:
+
+    🔥  deadline idag eller passerad, och ärendet lever fortfarande
+    📍  något som händer idag
+    🏁  avslutat idag
+
+Ikonerna är valda så att ingen krockar med de andra posterna på raden:
+aktiva-larm äger ❌⚠️ℹ️✅ och nasta-mote äger 📅⏰. Två ✅ bredvid varandra med
+olika betydelse vore sämre än ett målsnöre.
+
+Körs av `ui.tab_bar_right` i ~/AppData/Roaming/herdr/config.toml med ett
+intervall, så den är tyst när något går fel: en traceback i statusraden hjälper
+ingen. Felet syns med --all i stället. Läser bara.
+
+Två anrop mot maskindörren, av var sin anledning:
+
+    /api/machine/stats?days=1    rubrikens siffror (now) och dygnets händelser
+    /api/machine/tickets?scope=dated   allt som bär ett datum, även avklarat
+
+Datumen finns inte i statsvaret och högens tal finns inte i listan, och
+scope=dated är den enda läsningen som inte slår i listans tak på 200 rader.
+
+Grit räknar dygn i svensk tid. Scoops python saknar tzdata, så ZoneInfo går
+inte att be om — maskinen står i Stockholm och dess egen lokaltid är därför
+samma dag som Grit menar.
+
+Nycklarna är samma servicetoken som grit-skillen använder, ur
+~/.hidden/secrets.json. En egen User-Agent krävs: Cloudflare svarar
+python-urllibs förvalda med 1010 (banned browser signature).
+"""
+
+import io
+import json
+import os
+import sys
+import urllib.request
+from datetime import datetime
+
+BASE = os.environ.get("GRIT_BASE_URL", "https://grit.wesports.io")
+SECRETS = os.path.join(os.path.expanduser("~"), ".hidden", "secrets.json")
+UA = "gritten (herdr status row)"
+TIMEOUT = 15
+
+try:
+    sys.stdout.reconfigure(encoding="utf-8", newline="\n")
+except Exception:
+    pass
+
+
+def get(path):
+    with io.open(SECRETS, encoding="utf-8") as f:
+        grit = json.load(f).get("grit", {})
+    if not grit.get("CLI_CLIENT_ID") or not grit.get("CLI_CLIENT_SECRET"):
+        raise RuntimeError("no grit.CLI_CLIENT_ID / CLI_CLIENT_SECRET in %s" % SECRETS)
+    req = urllib.request.Request(BASE + path)
+    req.add_header("CF-Access-Client-Id", grit["CLI_CLIENT_ID"])
+    req.add_header("CF-Access-Client-Secret", grit["CLI_CLIENT_SECRET"])
+    req.add_header("User-Agent", UA)
+    with urllib.request.urlopen(req, timeout=TIMEOUT) as r:
+        return json.loads(r.read())
+
+
+def today():
+    return datetime.now().astimezone().strftime("%Y-%m-%d")
+
+
+def closed_today(events, day):
+    """Hur många som gick till done idag.
+
+    Räknas per händelse, som appens Statistics-vy: ett ärende som öppnats och
+    avslutats två gånger samma dag räknas två gånger. Händelserna bär inget
+    ärende-id, så något annat går inte att göra, och det är rätt ändå — raden
+    visar vad som blev gjort, inte hur många olika saker det var.
+    """
+    n = 0
+    for e in events:
+        if e.get("kind") != "status":
+            continue
+        try:
+            detail = json.loads(e.get("detail") or "{}")
+        except ValueError:
+            continue
+        if detail.get("to") != "done":
+            continue
+        if datetime.fromisoformat(e["at"]).astimezone().strftime("%Y-%m-%d") == day:
+            n += 1
+    return n
+
+
+def dated(tickets, day):
+    """(försenade eller på deadline idag, händer idag).
+
+    Samma uppdelning som appens Plan-vy (src/core/focus.ts): avklarat och
+    parkerat räknas inte, en deadline idag hör ihop med en passerad, och det
+    som bara händer idag är aldrig sent. Deltaskar är med — en försenad
+    deltask är försenad.
+    """
+    due, happens = [], []
+    for t in tickets:
+        if t.get("status") == "done" or t.get("backlog"):
+            continue
+        if t.get("dueOn") and t["dueOn"] <= day:
+            due.append(t)
+        elif t.get("happensOn") == day:
+            happens.append(t)
+    return due, happens
+
+
+def main():
+    day = today()
+    stats = get("/api/machine/stats?days=1")
+    tickets = get("/api/machine/tickets?scope=dated")["tickets"]
+
+    now = stats.get("now", {})
+    pile = now.get("open", 0) + now.get("doing", 0)
+    due, happens = dated(tickets, day)
+    closed = closed_today(stats.get("events", []), day)
+
+    parts = ["📋 %d" % pile]
+    if due:
+        parts.append("🔥 %d" % len(due))
+    if happens:
+        parts.append("📍 %d" % len(happens))
+    if closed:
+        parts.append("🏁 %d" % closed)
+    print("  ".join(parts))
+
+    if "--all" in sys.argv:
+        print("  Högen      %d öppna, %d pågående, varav %d väntar på någon"
+              % (now.get("open", 0), now.get("doing", 0), now.get("waiting", 0)))
+        print("  Idag       %d avslutade, %d inlagda"
+              % (closed, sum(1 for e in stats.get("events", [])
+                             if e.get("kind") == "created"
+                             and datetime.fromisoformat(e["at"]).astimezone()
+                             .strftime("%Y-%m-%d") == day)))
+        for t in due:
+            when = "idag" if t.get("dueOn") == day else t.get("dueOn")
+            print("  🔥 %-12s %-9s %s" % (t.get("ref") or "", when, t.get("title", "")))
+        for t in happens:
+            print("  📍 %-12s %-9s %s" % (t.get("ref") or "", "idag", t.get("title", "")))
+        if not due and not happens:
+            print("  Inget med datum som ligger på idag")
+
+
+if __name__ == "__main__":
+    try:
+        main()
+    except Exception as e:
+        if "--all" in sys.argv:
+            sys.exit("Gick inte att läsa Grit: %s" % e)
