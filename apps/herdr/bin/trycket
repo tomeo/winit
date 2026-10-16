@@ -1,0 +1,247 @@
+#!/usr/bin/env python3
+"""Hur hårt maskinen går just nu, som en rad till Herdrs tabbrad.
+
+    trycket               "😍  🧠 62%  ⚡ 31%" — allt lugnt
+                          "🤯  🧠 95%  ⚡ 57%  💿 21 MB/s" — minnet räcker inte
+    trycket --all         samma rad plus siffrorna bakom den, och fel syns
+
+RAM-talet är andelen av det användbara minnet som är i bruk, samma tal som
+Aktivitetshanteraren visar. Skivikonen dyker upp först när något faktiskt
+hämtas tillbaka från pagefilen — det är den enda ärliga swap-signalen, för
+pagefilens storlek säger ingenting (Windows reserverar den i förväg).
+Ansiktet först är hela maskinens humör: 😍 lugnt, 🤯 inget minne kvar.
+
+Körs av `ui.tab_bar_right` i ~/AppData/Roaming/herdr/config.toml med ett
+intervall, så den är tyst när något går fel: en traceback i statusraden hjälper
+ingen. Felet syns med --all i stället.
+
+Allt läses med ctypes rakt mot Win32 och PDH — ingen PowerShell, ingen WMI, för
+raden ska kosta millisekunder, inte sekunder. CPU-procenten och sidor/sekund är
+båda hastigheter och kräver två mätpunkter; i stället för att sova en sekund vid
+varje körning sparas mätpunkten i STATE och nästa körning räknar mot den. Måttet
+blir då medelvärdet över tabbradens intervall, vilket är precis vad man vill se.
+Läser bara, ändrar bara sin egen statusfil.
+"""
+
+import ctypes
+import ctypes.wintypes as w
+import json
+import os
+import sys
+import tempfile
+import time
+
+# Statusfilen ligger hos herdr och inte i TEMP: bash och cmd.exe stavar TEMP
+# olika (kortnamnet TOMMY~1.IVA mot det långa), och två stavningar vore två
+# mätpunkter som aldrig ser varandra.
+_HOME = os.environ.get("LOCALAPPDATA") or tempfile.gettempdir()
+STATE = os.path.join(_HOME, "herdr", "trycket-state.json")
+STALE_SECONDS = 900        # äldre mätpunkt än så säger inget om nuet
+FALLBACK_SLEEP = 0.4       # används bara när det inte finns någon mätpunkt
+PAGE_BYTES = 4096
+
+# Sidor per sekund in från disk. Under PAGES_SHOW är det brus — ett program som
+# startar läser in sig själv och det är inte att swappa.
+PAGES_SHOW = 100
+
+# Hur dåligt maskinen mår, i fem steg, och ansiktet som hör till varje steg.
+# Betyget är det sämsta av de tre måtten, inte ett medelvärde: en maskin som
+# tuggar disk mår dåligt även om CPU:n står still.
+FACES = ["😍", "🙂", "😐", "😓", "🤯"]
+
+# Trösklarna läses nedifrån: första värdet man är sämre än ger betyget.
+# Minnet bedöms på hur mycket som är LEDIGT, inte hur mycket som är i bruk —
+# 90 % i bruk är Windows som använder det det har, och det är inte ett problem
+# förrän det inte finns något kvar att ge. Därav de låga andelarna.
+AVAIL_STEPS = [0.20, 0.12, 0.07, 0.04]     # andel ledigt fysiskt minne
+PAGES_STEPS = [100, 400, 1500, 4000]       # sidor/sekund in från disk
+
+# CPU:n har bara två trösklar och kan därför aldrig ensam ge mer än 😐. En
+# maskin som kompilerar på alla kärnor gör precis det man bett om — den är
+# upptagen, inte sjuk. Det som verkligen gör en maskin dålig att sitta vid är
+# att minnet tar slut och disken får täcka upp: då hackar även det man inte
+# startat. Bara de två måtten når längst ut på skalan.
+CPU_STEPS = [0.60, 0.85]                   # andel upptagen CPU
+
+try:
+    sys.stdout.reconfigure(encoding="utf-8", newline="\n")
+except Exception:
+    pass
+
+
+class MEMORYSTATUSEX(ctypes.Structure):
+    _fields_ = [("dwLength", w.DWORD), ("dwMemoryLoad", w.DWORD),
+                ("ullTotalPhys", ctypes.c_ulonglong),
+                ("ullAvailPhys", ctypes.c_ulonglong),
+                ("ullTotalPageFile", ctypes.c_ulonglong),
+                ("ullAvailPageFile", ctypes.c_ulonglong),
+                ("ullTotalVirtual", ctypes.c_ulonglong),
+                ("ullAvailVirtual", ctypes.c_ulonglong),
+                ("ullAvailExtendedVirtual", ctypes.c_ulonglong)]
+
+
+class PDH_RAW_COUNTER(ctypes.Structure):
+    _fields_ = [("CStatus", w.DWORD), ("TimeStamp", w.FILETIME),
+                ("FirstValue", ctypes.c_longlong),
+                ("SecondValue", ctypes.c_longlong), ("MultiCount", w.DWORD)]
+
+
+def memory():
+    """Fysiskt minne: (i bruk, totalt, ledigt) i byte."""
+    m = MEMORYSTATUSEX()
+    m.dwLength = ctypes.sizeof(m)
+    if not ctypes.windll.kernel32.GlobalMemoryStatusEx(ctypes.byref(m)):
+        raise OSError("GlobalMemoryStatusEx")
+    return m.ullTotalPhys - m.ullAvailPhys, m.ullTotalPhys, m.ullAvailPhys
+
+
+def cpu_ticks():
+    """(sysselsatt, totalt) i 100 ns sedan uppstart. Kernel rymmer idle."""
+    idle, kern, user = w.FILETIME(), w.FILETIME(), w.FILETIME()
+    if not ctypes.windll.kernel32.GetSystemTimes(
+            ctypes.byref(idle), ctypes.byref(kern), ctypes.byref(user)):
+        raise OSError("GetSystemTimes")
+    q = lambda f: (f.dwHighDateTime << 32) | f.dwLowDateTime
+    total = q(kern) + q(user)
+    return total - q(idle), total
+
+
+def pages_in():
+    """Antal sidor lästa från disk sedan uppstart (kumulativt råvärde).
+
+    PdhAddEnglishCounterW tar den engelska sökvägen även på en lokaliserad
+    Windows, så raden fungerar oavsett språkpaket. Ett enda PdhCollectQueryData
+    räcker eftersom råvärdet är kumulativt — hastigheten räknar vi ut själva.
+    """
+    pdh = ctypes.WinDLL("pdh.dll")
+    query = w.HANDLE()
+    if pdh.PdhOpenQueryW(None, 0, ctypes.byref(query)):
+        raise OSError("PdhOpenQuery")
+    try:
+        counter = w.HANDLE()
+        if pdh.PdhAddEnglishCounterW(query, r"\Memory\Pages Input/sec", 0,
+                                     ctypes.byref(counter)):
+            raise OSError("PdhAddEnglishCounter")
+        if pdh.PdhCollectQueryData(query):
+            raise OSError("PdhCollectQueryData")
+        raw = PDH_RAW_COUNTER()
+        if pdh.PdhGetRawCounterValue(counter, None, ctypes.byref(raw)):
+            raise OSError("PdhGetRawCounterValue")
+        return raw.FirstValue
+    finally:
+        pdh.PdhCloseQuery(query)
+
+
+def read_state():
+    try:
+        with open(STATE, "r", encoding="utf-8") as f:
+            old = json.load(f)
+    except Exception:
+        return None
+    age = time.time() - old.get("t", 0)
+    if age <= 0 or age > STALE_SECONDS:
+        return None
+    return old
+
+
+def sample():
+    """Mät, och ge (ram_andel, cpu_andel, sidor_per_sekund, ledigt_andel).
+
+    Finns ingen färsk mätpunkt på disk tas en egen på FALLBACK_SLEEP sekunder,
+    så att första körningen efter en omstart också visar något vettigt.
+    """
+    old = read_state()
+    now, busy_now, tot_now, pin_now = time.time(), *cpu_ticks(), pages_in()
+
+    if old is None:
+        # Den nyss tagna mätpunkten blir utgångsläget, och vi mäter igen strax.
+        base_t, base_busy, base_tot, base_pin = now, busy_now, tot_now, pin_now
+        time.sleep(FALLBACK_SLEEP)
+        now, (busy_now, tot_now), pin_now = time.time(), cpu_ticks(), pages_in()
+    else:
+        base_t, base_busy = old["t"], old["busy"]
+        base_tot, base_pin = old["total"], old["pages_in"]
+
+    try:
+        os.makedirs(os.path.dirname(STATE), exist_ok=True)
+        with open(STATE, "w", encoding="utf-8") as f:
+            json.dump({"t": now, "busy": busy_now, "total": tot_now,
+                       "pages_in": pin_now}, f)
+    except Exception:
+        pass
+
+    d_tot = tot_now - base_tot
+    d_busy = busy_now - base_busy
+    d_pin = pin_now - base_pin
+    d_time = now - base_t
+    # Negativa delta betyder omstart mellan körningarna; då vet vi inget än.
+    cpu = d_busy / d_tot if d_tot > 0 and d_busy >= 0 else None
+    pps = d_pin / d_time if d_time > 0 and d_pin >= 0 else None
+
+    used, total, avail = memory()
+    return used / total, cpu, pps, avail / total
+
+
+def grade(value, steps, lower_is_worse=False):
+    """Betyg 0-4 för ett mått mot sina trösklar. None när måttet inte är känt."""
+    if value is None:
+        return None
+    if lower_is_worse:
+        return sum(1 for s in steps if value < s)
+    return sum(1 for s in steps if value >= s)
+
+
+def mood(avail_share, cpu, pps):
+    """(ansikte, betyg per mått). Sämsta måttet bestämmer, med ett undantag.
+
+    Swappar maskinen samtidigt som minnet är slut drar betyget ett steg till.
+    De två hänger ihop — det är när minnet tagit slut OCH disken får täcka upp
+    som allt faktiskt hackar — och var för sig fångar inget av måtten det.
+    """
+    g = {"ram": grade(avail_share, AVAIL_STEPS, lower_is_worse=True),
+         "cpu": grade(cpu, CPU_STEPS),
+         "disk": grade(pps, PAGES_STEPS)}
+    known = [v for v in g.values() if v is not None]
+    score = max(known) if known else 0
+    if g["disk"] and g["ram"] and g["disk"] >= 1 and g["ram"] >= 2:
+        score += 1
+    score = min(score, len(FACES) - 1)
+    return FACES[score], g, score
+
+
+def line(ram, cpu, pps, avail_share):
+    face, _, _ = mood(avail_share, cpu, pps)
+    parts = [face, "🧠 %.0f%%" % (ram * 100)]
+    if cpu is not None:
+        parts.append("⚡ %.0f%%" % (cpu * 100))
+    if pps is not None and pps >= PAGES_SHOW:
+        mb = pps * PAGE_BYTES / 1048576
+        parts.append("💿 %s MB/s" % ("%.1f" % mb if mb < 10 else "%.0f" % mb))
+    return "  ".join(parts)
+
+
+def main():
+    ram, cpu, pps, avail_share = sample()
+    print(line(ram, cpu, pps, avail_share))
+    if "--all" in sys.argv:
+        used, total, avail = memory()
+        print("  RAM        %.1f av %.1f GB i bruk, %.1f GB ledigt (%.0f %%)"
+              % (used / 2**30, total / 2**30, avail / 2**30, ram * 100))
+        print("  CPU        %s" % ("okänt än" if cpu is None else "%.1f %%" % (cpu * 100)))
+        print("  Från disk  %s" % ("okänt än" if pps is None else
+              "%.0f sidor/s = %.1f MB/s" % (pps, pps * PAGE_BYTES / 1048576)))
+        face, g, score = mood(avail_share, cpu, pps)
+        namn = {"ram": "minne", "cpu": "cpu", "disk": "disk"}
+        varf = ", ".join("%s %s" % (namn[k], "okänt" if v is None else v)
+                         for k, v in g.items())
+        print("  Humör      %s  betyg %d av %d (%s)"
+              % (face, score, len(FACES) - 1, varf))
+        print("  Mätpunkt   %s" % STATE)
+
+
+if __name__ == "__main__":
+    try:
+        main()
+    except Exception:
+        if "--all" in sys.argv:
+            raise
