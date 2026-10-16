@@ -4,6 +4,11 @@
     aktiva-larm           "✅ Sites OK", annars "❌ 1 ⚠️ 2"
     aktiva-larm --all     ett larm per rad, med domän och rubrik
 
+Står alla larm på en och samma site hamnar domänen sist på raden,
+"❌ 1 backpackinglight.dk", eftersom det är nästa fråga ändå och det får
+plats när bara en site är drabbad. Flera siter får ingen lista — då är
+--all svaret.
+
 Ikonen bär betydelsen och siffran mängden: ❌ acute, ⚠️ watch, ℹ️ info, var och
 en bara när den har något att säga. Raden ska gå att läsa i ögonvrån, och det
 som behöver en förklaring hör hemma i --all.
@@ -62,6 +67,9 @@ def main():
         n = sum(1 for i in found if i.get("severity") == severity)
         if n:
             parts.append("%s %d" % (icon, n))
+    domains = {i.get("domain") for i in found if i.get("domain")}
+    if parts and len(domains) == 1:
+        parts.append(domains.pop())
     print(" ".join(parts) if parts else "✅ Sites OK")
 
 
