@@ -11,8 +11,8 @@ delivery = "herdr"
 status_indicators = "symbols"
 agent_panel_sort = "priority"
 
-# Statusraden längst upp till höger: maskinens tryck, högen i Grit, Site
-# Watch-larm, inkorgen och nästa möte.
+# Statusraden längst upp till höger: agenterna som rullar, maskinens tryck,
+# högen i Grit, Site Watch-larm, inkorgen och nästa möte.
 # Kommandona körs på Herdr-servern, inte i panelen, så raden står kvar oavsett
 # space och tab. Scripten ligger i winit (apps/herdr/bin) och kräver wsg
 # (och för gritten servicetokenen i ~/.hidden/secrets.json).
@@ -20,11 +20,20 @@ agent_panel_sort = "priority"
 # Herdr tar inte emot ANSI-färger här — ikonen är det enda som kan färga raden.
 #
 # Ordningen styrs av att raden är högerställd: en post som byter bredd knuffar
-# bara det som står till vänster om den. trycket står därför först (💿-delen
-# kommer och går oftast) och gritten näst först, eftersom dess 🔥 📍 🏁 kommer
-# och går några gånger om dagen. De tre till höger om dem står still.
+# bara det som står till vänster om den. agenterna står därför först: den byter
+# bredd mest av alla, eftersom ordet är allt från "lugnt" till "BEAST MODE",
+# och längst till vänster finns inget att knuffa. Sedan trycket (💿-delen
+# kommer och går oftast) och gritten, eftersom dess 🔥 📍 🏁 kommer och går
+# några gånger om dagen. De tre till höger om dem står still.
+#
+# agenterna frågar bara Herdr-serverns egen socket, utan nät och utan
+# inloggning, men går ändå på samma halvminut som trycket: det som kostar är
+# att starta processen, inte att fråga. På en maskin som går hårt tar ett bart
+# `python -c pass` flera sekunder, och det är också därför de andra posterna
+# ibland slår i sin timeout. Den som vill se lägena i realtid har sidofältet.
 tab_bar_right_separator = "  ·  "
 tab_bar_right = [
+  { type = "command", command = 'python %USERPROFILE%\bin\agenterna', interval_seconds = 30, timeout_seconds = 20 },
   { type = "command", command = 'python %USERPROFILE%\bin\trycket', interval_seconds = 30, timeout_seconds = 20 },
   { type = "command", command = 'python %USERPROFILE%\bin\gritten', interval_seconds = 120, timeout_seconds = 20 },
   { type = "command", command = 'python %USERPROFILE%\bin\aktiva-larm', interval_seconds = 120, timeout_seconds = 20 },

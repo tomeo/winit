@@ -1,0 +1,125 @@
+#!/usr/bin/env python3
+"""Hur många agenter som har något i luften, som en rad till Herdrs tabbrad.
+
+    agenterna             "🤖 5  full fart"
+    agenterna --all       samma rad plus en rad per agent, och fel syns
+
+Siffran är agenter med ett uppdrag i gång: de som arbetar och de som står
+och väntar på ett godkännande. En agent som är klar eller tom räknas inte —
+den är en flik som inte stängts, inte något som är igång. Därför är siffran
+nästan alltid lägre än antalet agenter i sidofältet, och det är meningen:
+raden svarar på hur mycket som rullar, inte hur många paneler som är öppna.
+
+Ordet är samma siffra en gång till, för den som läser raden i ögonvrån:
+
+    0       stiltje
+    1-2     lugnt
+    3-4     rullar
+    5-6     full fart
+    7+      BEAST MODE
+
+Sju är gränsen uppåt för att den ska betyda något. Fem till sex samtidiga
+agenter är en vanlig arbetsdag; sju är den dag då varje gång man tittar bort
+har någon blivit klar. Går gränsen vid fem står det BEAST MODE jämt, och då
+säger det lika lite som ingenting.
+
+Allt som inte är `idle` eller `done` räknas som igång, i stället för att
+`working` och `blocked` räknas upp var för sig. `unknown` betyder att Herdr
+ser en agent men inte vågar säga vad den gör, och det är inte ett bevis på att
+den är klar — den hör till siffran. Samma regel gör att ett nytt läge i en
+senare Herdr-version hamnar rätt utan att scriptet rörs.
+
+Ikonen är vald så att den inte krockar med de andra posterna på raden:
+trycket äger 🧠⚡💿 och ansiktena, gritten 📋🔥📍🏁, aktiva-larm ❌⚠️ℹ️✅🚫,
+inkorgen 📬📪📭 och nasta-mote 📅⏰.
+
+Posten står först i `ui.tab_bar_right`, alltså längst till vänster. Raden är
+högerställd, så en post som byter bredd knuffar bara det som står till vänster
+om den — och den här byter bredd mest av alla, eftersom ordet är allt från
+"lugnt" till "BEAST MODE". Längst till vänster finns inget att knuffa.
+
+Läser bara, och bara från Herdr-serverns egen socket: inget nät, ingen
+inloggning, inget som kan hänga. Tyst när något går fel — en traceback i
+statusraden hjälper ingen. Felet syns med --all i stället.
+"""
+
+import json
+import os
+import shutil
+import subprocess
+import sys
+
+# Lägen där agenten står still och väntar på nästa uppdrag. Allt annat räknas.
+VILANDE = {"idle", "done"}
+
+# Första talet man är minst lika stor som ger ordet, så listan läses nedifrån.
+STEG = [(7, "BEAST MODE"), (5, "full fart"), (3, "rullar"), (1, "lugnt"), (0, "stiltje")]
+
+IKON = {"working": "◑", "blocked": "✋", "done": "✳", "idle": "·"}
+TIMEOUT = 10
+
+try:
+    sys.stdout.reconfigure(encoding="utf-8", newline="\n")
+except Exception:
+    pass
+
+
+def herdr():
+    """Sökvägen till herdr.exe.
+
+    Paketkatalogen ligger i PATH, men statusraden körs av servern och ärver
+    inte en panels miljö, så HERDR_BIN_PATH finns som andra försök.
+    """
+    return shutil.which("herdr") or os.environ.get("HERDR_BIN_PATH") or "herdr"
+
+
+def agents():
+    out = subprocess.run([herdr(), "agent", "list"], capture_output=True,
+                         text=True, encoding="utf-8", timeout=TIMEOUT)
+    if out.returncode != 0:
+        raise RuntimeError((out.stderr or out.stdout or "").strip() or
+                           "herdr agent list gav %d" % out.returncode)
+    return json.loads(out.stdout)["result"]["agents"]
+
+
+def igang(agents):
+    return [a for a in agents if a.get("agent_status") not in VILANDE]
+
+
+def ord_for(n):
+    return next(w for gräns, w in STEG if n >= gräns)
+
+
+def main():
+    alla = agents()
+    # Ingen agent alls: ingen rad. Herdr hoppar över posten utan att lämna en
+    # avskiljare efter sig, precis som när ett script tiger om ett fel.
+    if not alla:
+        if "--all" in sys.argv:
+            print("Inga agenter alls")
+        return
+
+    n = len(igang(alla))
+    print("🤖 %d  %s" % (n, ord_for(n)))
+
+    if "--all" in sys.argv:
+        lägen = {}
+        for a in alla:
+            lägen[a.get("agent_status", "?")] = lägen.get(a.get("agent_status", "?"), 0) + 1
+        print("  Räknas     %d av %d agenter (%s)"
+              % (n, len(alla), ", ".join("%s %d" % (k, v) for k, v in sorted(lägen.items()))))
+        for a in sorted(alla, key=lambda a: (a.get("agent_status") in VILANDE,
+                                             a.get("pane_id", ""))):
+            läge = a.get("agent_status", "?")
+            print("  %s %-7s %-7s %-14s %s"
+                  % (IKON.get(läge, "?"), läge, a.get("pane_id", ""),
+                     os.path.basename(a.get("cwd", "")),
+                     a.get("terminal_title_stripped") or a.get("name") or ""))
+
+
+if __name__ == "__main__":
+    try:
+        main()
+    except Exception as e:
+        if "--all" in sys.argv:
+            sys.exit("Gick inte att läsa Herdr: %s" % e)
